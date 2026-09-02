@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Terminal, Save, Download, Cpu, HardDrive, Wifi, Shield, Play, Settings, AlertTriangle, CheckCircle2, Activity, Server, FileText, Calendar, GitCompare, ListChecks, Layers } from 'lucide-react';
+import { Terminal, Save, Download, Cpu, HardDrive, Wifi, Shield, Play, Settings, AlertTriangle, CheckCircle2, Activity, Server, FileText, Calendar, GitCompare, ListChecks, Layers, Search, Zap, History, Bell } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
@@ -63,8 +63,10 @@ export default function App() {
             <StepLink step={1} current={activeStep} onClick={() => setActiveStep(1)} label="Hardware Config" icon={<Settings className="w-4 h-4" />} />
             <StepLink step={2} current={activeStep} onClick={() => setActiveStep(2)} label="Packages" icon={<HardDrive className="w-4 h-4" />} />
             <StepLink step={3} current={activeStep} onClick={() => setActiveStep(3)} label="Execution" icon={<Play className="w-4 h-4" />} />
-            <StepLink step={4} current={activeStep} onClick={() => setActiveStep(4)} label="Version Compare" icon={<GitCompare className="w-4 h-4" />} />
-            <StepLink step={5} current={activeStep} onClick={() => setActiveStep(5)} label="Image Hub" icon={<Download className="w-4 h-4" />} />
+            <StepLink step={4} current={activeStep} onClick={() => setActiveStep(4)} label="Quick Flash" icon={<Zap className="w-4 h-4" />} />
+            <StepLink step={5} current={activeStep} onClick={() => setActiveStep(5)} label="Logs History" icon={<History className="w-4 h-4" />} />
+            <StepLink step={6} current={activeStep} onClick={() => setActiveStep(6)} label="Version Compare" icon={<GitCompare className="w-4 h-4" />} />
+            <StepLink step={7} current={activeStep} onClick={() => setActiveStep(7)} label="Image Hub" icon={<Download className="w-4 h-4" />} />
           </nav>
           <div className="p-4 border-t border-border text-[10px] text-zinc-500 uppercase tracking-widest">
             v2.4.0-stable
@@ -96,11 +98,21 @@ export default function App() {
             )}
             {activeStep === 4 && (
               <StepWrapper key="step4">
-                <VersionComparatorStep />
+                <QuickFlashStep />
               </StepWrapper>
             )}
             {activeStep === 5 && (
               <StepWrapper key="step5">
+                <LogsHistoryStep />
+              </StepWrapper>
+            )}
+            {activeStep === 6 && (
+              <StepWrapper key="step6">
+                <VersionComparatorStep />
+              </StepWrapper>
+            )}
+            {activeStep === 7 && (
+              <StepWrapper key="step7">
                 <ImageHubStep config={config} />
               </StepWrapper>
             )}
@@ -334,6 +346,7 @@ function ExecutionStep({ config }: { config: BuildPreset }) {
   const [showConfirm, setShowConfirm] = useState(false);
   const [showSchedule, setShowSchedule] = useState(false);
   const [scheduleTime, setScheduleTime] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
 
   const generateScript = async () => {
     try {
@@ -491,6 +504,16 @@ function ExecutionStep({ config }: { config: BuildPreset }) {
               <div className="w-2.5 h-2.5 rounded-full bg-green-500/50"></div>
             </div>
             <div className="flex items-center gap-4">
+              <div className="relative">
+                <input 
+                  type="text" 
+                  placeholder="Search logs..." 
+                  value={searchTerm}
+                  onChange={e => setSearchTerm(e.target.value)}
+                  className="bg-background border border-border rounded text-[10px] px-2 py-1 text-zinc-300 w-32 focus:outline-none focus:border-amber-500 transition-colors"
+                />
+                <Search className="w-3 h-3 text-zinc-500 absolute right-2 top-1.5 pointer-events-none" />
+              </div>
               <span className="text-[10px] font-mono text-zinc-500 uppercase">terminal session: build-tools</span>
               <button 
                 onClick={exportLogs} 
@@ -505,7 +528,7 @@ function ExecutionStep({ config }: { config: BuildPreset }) {
           
           <div className="p-6 overflow-y-auto flex-1 font-mono text-xs text-zinc-300 space-y-1.5">
             {logs.length === 0 && !isRunning && <div className="text-zinc-500">Waiting for build to start...</div>}
-            {logs.map((log, i) => (
+            {logs.filter(log => log.toLowerCase().includes(searchTerm.toLowerCase())).map((log, i) => (
               <div key={i}><span className="text-amber-500 mr-2">$</span>{log}</div>
             ))}
             {isRunning && <div className="animate-pulse text-amber-400">_</div>}
@@ -777,10 +800,12 @@ function DashboardStep() {
   const [dockerStatus, setDockerStatus] = useState<any>(null);
   const [buildHealth, setBuildHealth] = useState<any[]>([]);
   const [resources, setResources] = useState<any[]>([]);
+  const [alerts, setAlerts] = useState<any[]>([]);
 
   useEffect(() => {
     fetch('/api/docker-status').then(r => r.json()).then(setDockerStatus).catch(() => {});
     fetch('/api/build-health').then(r => r.json()).then(setBuildHealth).catch(() => {});
+    fetch('/api/system-alerts').then(r => r.json()).then(setAlerts).catch(() => {});
     
     // Poll resources
     const fetchResources = () => {
@@ -795,6 +820,21 @@ function DashboardStep() {
     <div className="max-w-5xl flex flex-col gap-8 pb-12">
       <div>
         <h2 className="text-xl font-semibold text-zinc-100 mb-6">System Dashboard</h2>
+        
+        {alerts.length > 0 && (
+          <div className="mb-8 space-y-3">
+            {alerts.map((alert: any) => (
+              <div key={alert.id} className={`p-4 rounded-xl border flex items-start gap-3 ${alert.type === 'error' ? 'bg-red-500/10 border-red-500/30 text-red-500' : 'bg-amber-500/10 border-amber-500/30 text-amber-500'}`}>
+                <Bell className="w-5 h-5 shrink-0 mt-0.5" />
+                <div>
+                  <h4 className="font-bold text-sm">{alert.type === 'error' ? 'System Error' : 'System Warning'}</h4>
+                  <p className="text-xs opacity-90 mt-1">{alert.message}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <div className="bg-surface border border-border p-5 rounded-xl flex items-center gap-4">
             <div className="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-500">
@@ -902,6 +942,140 @@ function DashboardStep() {
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function QuickFlashStep() {
+  const [ip, setIp] = useState('192.168.178.1');
+  const [file, setFile] = useState<File | null>(null);
+  const [flashing, setFlashing] = useState(false);
+
+  const handleFlash = async () => {
+    if (!file || !ip) return;
+    setFlashing(true);
+    try {
+      const res = await fetch('/api/quick-flash', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ip, filename: file.name })
+      });
+      const data = await res.json();
+      alert(data.message);
+    } catch (e) {
+      console.error(e);
+    }
+    setFlashing(false);
+  };
+
+  return (
+    <div className="max-w-2xl h-full flex flex-col">
+      <h2 className="text-xl font-semibold text-zinc-100 mb-6 shrink-0">Quick Flash Tool</h2>
+      <div className="bg-surface border border-border p-6 rounded-xl flex-1 flex flex-col gap-6">
+        <div>
+          <label className="text-[10px] uppercase tracking-widest text-zinc-500 block mb-2">Target Router IP Address</label>
+          <input 
+            type="text" 
+            value={ip}
+            onChange={e => setIp(e.target.value)}
+            className="w-full bg-background border border-border rounded-md px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:border-amber-500 transition-colors"
+          />
+        </div>
+        <div>
+          <label className="text-[10px] uppercase tracking-widest text-zinc-500 block mb-2">Firmware Image (.image)</label>
+          <div className="border-2 border-dashed border-border rounded-xl p-8 text-center bg-background/50 flex flex-col items-center justify-center gap-4">
+            <HardDrive className="w-8 h-8 text-zinc-500" />
+            <input 
+              type="file" 
+              accept=".image" 
+              onChange={e => setFile(e.target.files?.[0] || null)}
+              className="text-sm text-zinc-400 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-amber-500/10 file:text-amber-500 hover:file:bg-amber-500/20"
+            />
+            {file && <span className="text-xs text-amber-500 font-mono mt-2">{file.name}</span>}
+          </div>
+        </div>
+        <div className="mt-auto flex justify-end">
+          <button 
+            onClick={handleFlash}
+            disabled={!file || !ip || flashing}
+            className="bg-amber-500 rounded-md hover:bg-amber-400 disabled:opacity-50 text-black px-8 py-2.5 text-xs uppercase font-bold tracking-wider transition-colors flex items-center gap-2 shadow-lg shadow-amber-500/20"
+          >
+            {flashing ? 'Flashing...' : 'Initiate Flash'}
+            <Zap className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function LogsHistoryStep() {
+  const [history, setHistory] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedLogs, setSelectedLogs] = useState<string[] | null>(null);
+
+  useEffect(() => {
+    fetch('/api/logs-history')
+      .then(r => r.json())
+      .then(data => {
+        setHistory(data);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, []);
+
+  return (
+    <div className="max-w-5xl h-full flex flex-col">
+      <h2 className="text-xl font-semibold text-zinc-100 mb-6 shrink-0">Build Logs History</h2>
+      
+      {selectedLogs ? (
+        <div className="flex-1 flex flex-col min-h-0">
+          <button 
+            onClick={() => setSelectedLogs(null)}
+            className="mb-4 text-xs font-bold uppercase tracking-wider text-zinc-400 hover:text-zinc-200 self-start flex items-center gap-2"
+          >
+            ← Back to History
+          </button>
+          <div className="bg-[#0d0d0f] border border-border flex flex-col min-h-0 relative rounded-xl overflow-hidden shadow-2xl">
+            <div className="bg-[#1c1c21] px-4 py-2 border-b border-border shrink-0">
+              <span className="text-[10px] font-mono text-zinc-500 uppercase">terminal session: historical-log</span>
+            </div>
+            <div className="p-6 overflow-y-auto flex-1 font-mono text-xs text-zinc-300 space-y-1.5">
+              {selectedLogs.map((log, i) => (
+                <div key={i}><span className="text-zinc-500 mr-2">$</span>{log}</div>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="flex-1 overflow-y-auto pr-4 space-y-4">
+          {loading ? (
+            <div className="text-zinc-500 text-sm">Loading history...</div>
+          ) : history.length === 0 ? (
+            <div className="text-zinc-500 text-sm">No historical builds found.</div>
+          ) : (
+            history.map(item => (
+              <div key={item.id} className="bg-surface border border-border p-4 rounded-xl flex items-center justify-between hover:border-zinc-500 transition-colors">
+                <div className="flex items-center gap-4">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${item.status === 'success' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
+                    {item.status === 'success' ? <CheckCircle2 className="w-5 h-5" /> : <AlertTriangle className="w-5 h-5" />}
+                  </div>
+                  <div>
+                    <div className="font-bold text-zinc-200 text-sm">{item.id} <span className="text-zinc-500 font-mono font-normal ml-2">{item.model}</span></div>
+                    <div className="text-xs text-zinc-400 mt-1">{item.date}</div>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setSelectedLogs(item.logs)}
+                  className="px-4 py-2 border border-border rounded-md hover:bg-white/5 text-xs text-zinc-300 font-bold uppercase tracking-wider transition-colors flex items-center gap-2"
+                >
+                  View Logs <FileText className="w-3 h-3" />
+                </button>
+              </div>
+            ))
+          )}
+        </div>
+      )}
     </div>
   );
 }

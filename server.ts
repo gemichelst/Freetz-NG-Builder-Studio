@@ -73,6 +73,26 @@ async function startServer() {
     });
   });
 
+  app.get("/api/logs-history", (req, res) => {
+    res.json([
+      { id: 'b-1001', date: '2023-10-25 14:30', status: 'success', model: '7590', logs: ['Initializing build...', 'Make menuconfig...', 'Build successful.'] },
+      { id: 'b-1002', date: '2023-10-26 09:15', status: 'failed', model: '7490', logs: ['Initializing build...', 'Error: Missing dependencies.', 'Build failed.'] },
+      { id: 'b-1003', date: '2023-10-27 16:45', status: 'success', model: '6591', logs: ['Starting container...', 'Compiling...', 'Done.'] }
+    ]);
+  });
+
+  app.post("/api/quick-flash", (req, res) => {
+    const { ip, filename } = req.body;
+    res.json({ success: true, message: `Flashing ${filename} to ${ip} initiated.` });
+  });
+
+  app.get("/api/system-alerts", (req, res) => {
+    res.json([
+      { id: 1, type: 'warning', message: 'CPU Usage exceeded 80% in the last hour.' },
+      { id: 2, type: 'error', message: 'Recent build (b-1002) failed due to missing dependencies.' }
+    ]);
+  });
+
   app.post("/api/generate-script", (req, res) => {
     const config = req.body;
     
