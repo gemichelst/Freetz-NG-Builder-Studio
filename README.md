@@ -1,55 +1,39 @@
-# Freetz-NG Builder Studio
+# Freetz-NG Web Studio
 
-A comprehensive, full-stack web application designed for generating scripts, managing sources, and building files for Freetz-NG within virtualized Debian or Ubuntu environments. 
+Freetz-NG Web Studio is a highly advanced, modern web interface for orchestrating, configuring, and compiling custom firmware for FRITZ!Box routers using the Freetz-NG build system. 
+
+It completely replaces the legacy terminal-driven menuconfig with a rich, interactive, and intelligent graphical dashboard.
 
 ## Features
 
-- **Hardware Auto-Detection**: Automatically identifies connected Fritz!Box models on your local network (LAN) and selects the appropriate build targets.
-- **Dependency Resolution & Auto-Download**: Resolves and automatically downloads all required toolchains, Freetz-NG packages, and system dependencies prior to the build phase.
-- **Freetz-NG Image Hub**: A centralized repository system organized by router model. Browse, download, and flash pre-built Freetz-NG images directly to your device without recompiling.
-- **Categorized Package Selection**: Intuitive interface to select packages (Security, Network, System, Media).
-- **Advanced Configuration Presets**: Save and load global community configuration presets to quickly reconstruct complex Freetz-NG builds.
-- **Transparent Build Simulator**: Real-time logging console via Server-Sent Events (SSE) providing step-by-step insight into the compilation process, accompanied by a dynamic progress bar.
-- **Script Generation**: Dynamically outputs a fully configured bash script payload capable of initializing the Freetz-NG environment, resolving dependencies, running `make`, and remotely flashing the firmware.
+### 1. Hardware & OS Configuration
+- Select target router models (7590, 7530, 7490, 6591, 3390, 7560, 7520, etc.).
+- Target specific FRITZ!OS versions.
+- Configure IP addresses, execution modes (Direct or Docker).
 
-## High-Density Design Theme
+### 2. Intelligent Package Selection
+- **Deep Database:** Browse over 30+ categorized Freetz-NG packages, patches, tools, libraries, and themes.
+- **Smart Dependency Resolution:** Automatically pulls in required libraries (e.g., selecting OpenVPN pulls in `libssl` and `liblzo2`).
+- **Conflict Prevention:** Prevents you from selecting mutually exclusive packages (e.g., `Dnsmasq` and `dnsd`).
+- **Hardware Compatibility Validator:** Ensures packages are supported on your selected router model, disabling or warning about incompatible selections.
+- **Payload Search:** Fast text-based filtering to find specific packages or libraries instantly.
+- **External Flash (uStor):** Automated support for offloading large images to external USB storage via `Freetzmount`.
 
-The Freetz-NG Builder Studio employs a professional, high-density interface:
-- **Dark, High-Contrast Palette**: Built around deep slate and void colors (`#0d0f12`, `#161a20`) for reduced eye strain during long terminal sessions.
-- **Emerald & Amber Accents**: Actionable elements and terminal logs use high-visibility emerald-500, while warnings use amber.
-- **Utility Typography**: Monospaced font tracking for system readouts, IP configurations, and console logs.
+### 3. Presets & Templating
+- **Predefined Presets:** Load community-standard profiles (e.g., VPN Hub, Ad-Blocker, Minimal Starter, Maxdev Sandbox).
+- **Custom Preset Categories:** Group, organize, and sync your own custom configurations securely with the cloud.
+- **Build Batch Templating:** Create complex batch compilation jobs. Select a base preset and dynamically matrix it across multiple hardware models, dispatching everything to the queue simultaneously.
 
-## Getting Started
+### 4. Build Queue & Orchestration
+- **Drag-and-Drop Queue:** Easily re-prioritize pending build jobs by dragging items within the queue.
+- **Live Telemetry:** Monitor real-time compilation states (Setup -> Compile -> Complete) across parallel runners.
+- **Batch History:** Audit your previous batch compilation jobs, tracking total successes and failures across fleets.
 
-### Prerequisites
+### 5. Advanced Execution & Auditing
+- **Live Log Streaming:** Watch the compiler output in real time.
+- **Syntax Highlighting:** Intelligent Regex-powered highlighting parses standard Freetz-NG Make logs, highlighting errors in red, warnings in amber, success steps in green, and specific paths in cyan.
+- **Export Capabilities:** Download your full historical compilation logs as JSON artifacts for offline debugging and compliance.
+- **Browser Notifications:** Get alerted immediately when long-running background compilations successfully finish.
 
-- Node.js (v18+)
-- A Debian or Ubuntu virtual machine / host (for actual Freetz-NG compilation).
-
-### Installation
-
-1. Clone the repository.
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-3. Start the application in development mode:
-   ```bash
-   npm run dev
-   ```
-4. To build for production:
-   ```bash
-   npm run build
-   npm start
-   ```
-
-## Workflow
-
-1. **Hardware Config**: Select your target Fritz!Box model, define the target IP address, and optionally toggle automatic flashing. Or choose to load a community preset.
-2. **Package Selection**: Toggle necessary network, system, and media packages.
-3. **Execution**: Generate the deployment script or start the Freetz-NG build process. Monitor the real-time build stages directly from your browser.
-4. **Image Hub (Prebuilt Images)**: Navigate to the Image Hub to browse community-verified prebuilt Freetz-NG images tailored for specific FritzOS versions.
-
----
-
-*This project integrates the standard Freetz-NG scripts into a modernized web platform.*
+## Tech Stack
+Built using React, Tailwind CSS, TypeScript, and Lucide Icons. The UI features motion-based route transitions for a native application feel.

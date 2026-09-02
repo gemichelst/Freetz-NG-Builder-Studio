@@ -262,51 +262,51 @@ function ConfigStep({ config, onChange, onNext }: { config: BuildPreset, onChang
 
 const PACKAGES_DB = [
   { cat: 'Patches', icon: <Layers className="w-4 h-4" />, items: [
-    { id: 'Remove brandings', req: [], conf: [] },
-    { id: 'Replace kernel', req: [], conf: [] },
-    { id: 'Freetzmount', req: [], conf: [] },
-    { id: 'Maxdev', req: [], conf: [] }
+    { id: 'Remove brandings', req: [], conf: [], estSize: 0, estTime: 1, incompatModels: [] },
+    { id: 'Replace kernel', req: [], conf: [], estSize: 1.5, estTime: 8, incompatModels: ['3390', '7520'] },
+    { id: 'Freetzmount', req: [], conf: [], estSize: 0.2, estTime: 2, incompatModels: [] },
+    { id: 'Maxdev', req: [], conf: [], estSize: 2.1, estTime: 5, incompatModels: [] }
   ]},
   { cat: 'Themes', icon: <Play className="w-4 h-4" />, items: [
-    { id: 'Cuma', req: [], conf: [] },
-    { id: 'Legacy', req: [], conf: [] },
-    { id: 'Newfreetz', req: [], conf: [] },
-    { id: 'Phoenix', req: [], conf: [] }
+    { id: 'Cuma', req: [], conf: [], estSize: 1.1, estTime: 1, incompatModels: [] },
+    { id: 'Legacy', req: [], conf: [], estSize: 0.5, estTime: 1, incompatModels: [] },
+    { id: 'Newfreetz', req: [], conf: [], estSize: 1.3, estTime: 1, incompatModels: [] },
+    { id: 'Phoenix', req: [], conf: [], estSize: 1.8, estTime: 2, incompatModels: [] }
   ]},
   { cat: 'Network', icon: <Wifi className="w-4 h-4" />, items: [
-    { id: 'Dnsmasq', req: [], conf: ['dnsd'] },
-    { id: 'dnsd', req: [], conf: ['Dnsmasq'] },
-    { id: 'Downloader', req: [], conf: [] },
-    { id: 'Mosquitto', req: ['libssl', 'libcrypto'], conf: [] },
-    { id: 'NFS-Server', req: [], conf: [] },
-    { id: 'Wake-on-LAN', req: [], conf: [] },
-    { id: 'OpenVPN', req: ['libssl', 'liblzo2'], conf: [] },
-    { id: 'WireGuard', req: ['Replace kernel'], conf: [] }
+    { id: 'Dnsmasq', req: [], conf: ['dnsd'], estSize: 0.8, estTime: 2, incompatModels: [] },
+    { id: 'dnsd', req: [], conf: ['Dnsmasq'], estSize: 0.4, estTime: 1, incompatModels: [] },
+    { id: 'Downloader', req: [], conf: [], estSize: 0.3, estTime: 1, incompatModels: [] },
+    { id: 'Mosquitto', req: ['libssl', 'libcrypto'], conf: [], estSize: 1.2, estTime: 4, incompatModels: [] },
+    { id: 'NFS-Server', req: [], conf: [], estSize: 1.6, estTime: 5, incompatModels: [] },
+    { id: 'Wake-on-LAN', req: [], conf: [], estSize: 0.1, estTime: 1, incompatModels: [] },
+    { id: 'OpenVPN', req: ['libssl', 'liblzo2'], conf: [], estSize: 2.2, estTime: 6, incompatModels: [] },
+    { id: 'WireGuard', req: ['Replace kernel'], conf: [], estSize: 1.5, estTime: 5, incompatModels: ['3390', '7520'] }
   ]},
   { cat: 'System', icon: <Settings className="w-4 h-4" />, items: [
-    { id: 'Dropbear', req: [], conf: [] },
-    { id: 'Inetd', req: [], conf: [] },
-    { id: 'Syslogd', req: [], conf: [] },
-    { id: 'Swap', req: [], conf: [] },
-    { id: 'cronD', req: [], conf: [] },
-    { id: 'onlinechanged', req: [], conf: [] },
-    { id: 'Screen', req: [], conf: [] },
-    { id: 'SSH authorized-keys', req: [], conf: [] },
-    { id: 'Addhole', req: [], conf: [] }
+    { id: 'Dropbear', req: [], conf: [], estSize: 0.6, estTime: 2, incompatModels: [] },
+    { id: 'Inetd', req: [], conf: [], estSize: 0.1, estTime: 1, incompatModels: [] },
+    { id: 'Syslogd', req: [], conf: [], estSize: 0.2, estTime: 1, incompatModels: [] },
+    { id: 'Swap', req: [], conf: [], estSize: 0.1, estTime: 1, incompatModels: [] },
+    { id: 'cronD', req: [], conf: [], estSize: 0.2, estTime: 1, incompatModels: [] },
+    { id: 'onlinechanged', req: [], conf: [], estSize: 0.1, estTime: 1, incompatModels: [] },
+    { id: 'Screen', req: [], conf: [], estSize: 0.5, estTime: 2, incompatModels: [] },
+    { id: 'SSH authorized-keys', req: [], conf: [], estSize: 0.1, estTime: 1, incompatModels: [] },
+    { id: 'Addhole', req: [], conf: [], estSize: 0.9, estTime: 3, incompatModels: [] }
   ]},
   { cat: 'Misc / Tools', icon: <Terminal className="w-4 h-4" />, items: [
-    { id: 'LCD4linux', req: [], conf: [] },
-    { id: 'tcpdump', req: [], conf: [] },
-    { id: 'strace', req: [], conf: [] },
-    { id: 'nano', req: [], conf: [] },
-    { id: 'htop', req: [], conf: [] },
-    { id: 'mc', req: [], conf: [] }
+    { id: 'LCD4linux', req: [], conf: [], estSize: 1.4, estTime: 4, incompatModels: ['3390'] },
+    { id: 'tcpdump', req: [], conf: [], estSize: 0.7, estTime: 2, incompatModels: [] },
+    { id: 'strace', req: [], conf: [], estSize: 0.6, estTime: 2, incompatModels: [] },
+    { id: 'nano', req: [], conf: [], estSize: 0.3, estTime: 1, incompatModels: [] },
+    { id: 'htop', req: [], conf: [], estSize: 0.4, estTime: 1, incompatModels: [] },
+    { id: 'mc', req: [], conf: [], estSize: 1.8, estTime: 3, incompatModels: [] }
   ]},
   { cat: 'Libraries', icon: <Archive className="w-4 h-4" />, items: [
-    { id: 'libcrypto', req: [], conf: [] },
-    { id: 'libssl', req: [], conf: [] },
-    { id: 'liblzo2', req: [], conf: [] },
-    { id: 'zlib', req: [], conf: [] }
+    { id: 'libcrypto', req: [], conf: [], estSize: 1.2, estTime: 3, incompatModels: [] },
+    { id: 'libssl', req: [], conf: [], estSize: 1.4, estTime: 3, incompatModels: [] },
+    { id: 'liblzo2', req: [], conf: [], estSize: 0.5, estTime: 1, incompatModels: [] },
+    { id: 'zlib', req: [], conf: [], estSize: 0.4, estTime: 1, incompatModels: [] }
   ]}
 ];
 
@@ -333,6 +333,13 @@ function PackagesStep({ config, onChange, onNext }: { config: BuildPreset, onCha
       newPkgs = newPkgs.filter(p => p !== pkgId);
       setAlertMsg(null);
     } else {
+      // Check hardware compatibility
+      if (pkgNode.incompatModels.includes(config.model)) {
+        setAlertMsg({ type: 'error', text: `${pkgId} is incompatible with model ${config.model}.` });
+        setTimeout(() => setAlertMsg(null), 3000);
+        return;
+      }
+
       // Check conflicts
       const conflict = pkgNode.conf.find(c => config.packages.includes(c));
       if (conflict) {
@@ -347,6 +354,14 @@ function PackagesStep({ config, onChange, onNext }: { config: BuildPreset, onCha
       const addedDeps: string[] = [];
       pkgNode.req.forEach(reqPkg => {
         if (!newPkgs.includes(reqPkg)) {
+          // Check compatibility for dependency too
+          const depNode = flatDb.find(d => d.id === reqPkg);
+          if (depNode && depNode.incompatModels.includes(config.model)) {
+            // Ignore injecting incompatible dependencies or error out? Let's just error the whole package.
+            setAlertMsg({ type: 'error', text: `${pkgId} requires ${reqPkg}, which is incompatible with model ${config.model}.` });
+            setTimeout(() => setAlertMsg(null), 3000);
+            return;
+          }
           newPkgs.push(reqPkg);
           addedDeps.push(reqPkg);
         }
@@ -386,8 +401,87 @@ function PackagesStep({ config, onChange, onNext }: { config: BuildPreset, onCha
     }
   };
 
+  const calcEstimates = () => {
+    let size = 24; // Base OS size
+    let time = 5; // Base OS compile time
+    config.packages.forEach(pkgId => {
+      const p = flatDb.find(d => d.id === pkgId);
+      if (p) {
+        size += p.estSize;
+        time += p.estTime;
+      }
+    });
+    return { size: size.toFixed(1), time };
+  };
+
+  const { size: estSize, time: estTime } = calcEstimates();
+  const [showViz, setShowViz] = useState(false);
+
   return (
     <div className="max-w-6xl flex flex-col h-full relative">
+      {showViz && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-[#1c1c21] border border-border w-full max-w-2xl rounded-xl shadow-2xl flex flex-col max-h-[80vh]">
+            <div className="p-4 border-b border-border flex justify-between items-center shrink-0">
+              <h3 className="font-bold text-zinc-100 flex items-center gap-2">
+                <Layers className="w-4 h-4 text-amber-500" />
+                Payload Dependency Visualizer
+              </h3>
+              <button onClick={() => setShowViz(false)} className="text-zinc-500 hover:text-zinc-300 transition-colors">
+                Close
+              </button>
+            </div>
+            <div className="p-6 overflow-y-auto flex-1 space-y-6">
+              <div>
+                <h4 className="text-[10px] uppercase font-bold text-zinc-500 tracking-widest mb-3">Cost Analysis</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-surface border border-border rounded-lg p-4 text-center">
+                    <div className="text-2xl font-bold text-amber-500">{estTime} <span className="text-sm text-zinc-500 font-normal">min</span></div>
+                    <div className="text-[10px] uppercase text-zinc-400 tracking-wider mt-1">Est. Build Time</div>
+                  </div>
+                  <div className="bg-surface border border-border rounded-lg p-4 text-center">
+                    <div className="text-2xl font-bold text-blue-400">{estSize} <span className="text-sm text-zinc-500 font-normal">MB</span></div>
+                    <div className="text-[10px] uppercase text-zinc-400 tracking-wider mt-1">Est. Image Size</div>
+                  </div>
+                </div>
+              </div>
+              
+              <div>
+                <h4 className="text-[10px] uppercase font-bold text-zinc-500 tracking-widest mb-3">Dependency Tree</h4>
+                {config.packages.length === 0 ? (
+                  <div className="text-sm text-zinc-500 text-center py-4 border border-dashed border-border rounded-lg">No packages selected.</div>
+                ) : (
+                  <div className="space-y-2">
+                    {config.packages.map(pkgId => {
+                      const p = flatDb.find(d => d.id === pkgId);
+                      if (!p || p.req.length === 0) return null;
+                      return (
+                        <div key={pkgId} className="bg-surface border border-border rounded-lg p-3">
+                          <div className="text-sm font-bold text-zinc-200">{pkgId}</div>
+                          <div className="pl-4 mt-2 space-y-1 relative before:absolute before:left-1.5 before:top-0 before:bottom-0 before:w-px before:bg-border">
+                            {p.req.map(r => (
+                              <div key={r} className="text-xs text-zinc-400 flex items-center gap-2 relative before:absolute before:-left-3 before:top-1/2 before:w-2 before:h-px before:bg-border">
+                                {r}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {config.packages.filter(pkgId => flatDb.find(d => d.id === pkgId)?.req.length === 0).length > 0 && (
+                      <div className="bg-surface border border-border rounded-lg p-3 text-sm text-zinc-400">
+                        {config.packages.filter(pkgId => flatDb.find(d => d.id === pkgId)?.req.length === 0).join(', ')}
+                        <div className="text-[10px] text-zinc-500 mt-1 uppercase tracking-widest">Independent Packages</div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center justify-between mb-4 shrink-0">
         <h2 className="text-xl font-semibold text-zinc-100">Package & Patch Selection</h2>
         <div className="flex gap-4 items-center">
@@ -485,9 +579,12 @@ function PackagesStep({ config, onChange, onNext }: { config: BuildPreset, onCha
           <div className="text-[10px] uppercase font-bold tracking-widest text-zinc-500 flex items-center">
             Selected: <span className="text-amber-500 text-sm ml-1 mr-3">{config.packages.length}</span> items
             <span className="mx-2 text-border">|</span>
-            Est. Time: <span className="text-zinc-300 ml-1 mr-3">{5 + Math.ceil(config.packages.length * 0.8)} min</span>
+            Est. Time: <span className="text-zinc-300 ml-1 mr-3">{estTime} min</span>
             <span className="mx-2 text-border">|</span>
-            Est. Size: <span className="text-zinc-300 ml-1">{24 + (config.packages.length * 1.2)} MB</span>
+            Est. Size: <span className="text-zinc-300 ml-1 mr-3">{estSize} MB</span>
+            <button onClick={() => setShowViz(true)} className="text-amber-500 hover:text-amber-400 font-bold ml-2 underline decoration-amber-500/30 underline-offset-4 cursor-pointer">
+              View Dependency Tree
+            </button>
           </div>
           {config.externalTarget && (
             <div className="text-xs text-blue-400 mt-1 flex items-center gap-1 font-medium">
@@ -796,6 +893,8 @@ function PresetManager({ currentConfig, onApply }: { currentConfig: BuildPreset,
     }
   };
 
+  const [presetCategory, setPresetCategory] = useState('Personal Profiles');
+
   const savePreset = async () => {
     if (!presetName.trim()) return;
     setSaving(true);
@@ -806,6 +905,7 @@ function PresetManager({ currentConfig, onApply }: { currentConfig: BuildPreset,
         body: JSON.stringify({
           ...currentConfig,
           name: presetName,
+          category: presetCategory,
           id: undefined
         })
       });
@@ -816,6 +916,14 @@ function PresetManager({ currentConfig, onApply }: { currentConfig: BuildPreset,
     }
     setSaving(false);
   };
+
+  // Group fetched presets by category
+  const customCategories = presets.reduce((acc, p) => {
+    const cat = p.category || 'Uncategorized';
+    if (!acc[cat]) acc[cat] = [];
+    acc[cat].push(p);
+    return acc;
+  }, {} as Record<string, BuildPreset[]>);
 
   return (
     <div className="mt-8 border-t border-border pt-8">
@@ -859,36 +967,52 @@ function PresetManager({ currentConfig, onApply }: { currentConfig: BuildPreset,
           placeholder="New preset name..." 
           value={presetName}
           onChange={e => setPresetName(e.target.value)}
-          className="flex-1 bg-surface border border-border px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:border-amber-500 transition-colors"
+          className="flex-1 bg-surface border border-border rounded-md px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:border-amber-500 transition-colors"
         />
+        <select 
+          value={presetCategory}
+          onChange={e => setPresetCategory(e.target.value)}
+          className="w-48 bg-surface border border-border rounded-md px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:border-amber-500 transition-colors"
+        >
+          <option value="Personal Profiles">Personal Profiles</option>
+          <option value="Experimental">Experimental</option>
+          <option value="Stable Builds">Stable Builds</option>
+        </select>
         <button 
           onClick={savePreset}
           disabled={saving || !presetName.trim()}
-          className="bg-panel border border-border hover:border-amber-500 disabled:opacity-50 text-zinc-200 px-4 py-2 text-xs uppercase tracking-wider font-bold transition-colors flex items-center gap-2"
+          className="bg-panel border border-border rounded-md hover:border-amber-500 disabled:opacity-50 text-zinc-200 px-4 py-2 text-xs uppercase tracking-wider font-bold transition-colors flex items-center gap-2"
         >
           <Save className="w-3 h-3" /> Save Preset
         </button>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        {presets.map(p => (
-          <div key={p.id} className="bg-surface border border-border p-4 rounded-xl flex justify-between items-center group">
-            <div>
-              <div className="font-semibold text-sm text-zinc-200">{p.name}</div>
-              <div className="text-[10px] font-mono tracking-widest text-zinc-500 uppercase mt-1">
-                {p.model} | {p.packages.length} PKGS
-              </div>
+      <div className="space-y-6">
+        {Object.entries(customCategories).map(([cat, items]) => (
+          <div key={cat}>
+            <h5 className="text-[10px] uppercase tracking-widest text-zinc-500 font-bold mb-3">{cat}</h5>
+            <div className="grid grid-cols-2 gap-4">
+              {(items as any[]).map(p => (
+                <div key={p.id} className="bg-surface border border-border p-4 rounded-xl flex justify-between items-center group">
+                  <div>
+                    <div className="font-semibold text-sm text-zinc-200">{p.name}</div>
+                    <div className="text-[10px] font-mono tracking-widest text-zinc-500 uppercase mt-1">
+                      {p.model} | {p.packages.length} PKGS
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => onApply(p as any)}
+                    className="text-xs uppercase tracking-wider font-bold text-amber-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    Load
+                  </button>
+                </div>
+              ))}
             </div>
-            <button 
-              onClick={() => onApply(p)}
-              className="text-xs uppercase tracking-wider font-bold text-amber-500 opacity-0 group-hover:opacity-100 transition-opacity"
-            >
-              Load
-            </button>
           </div>
         ))}
         {presets.length === 0 && (
-          <div className="col-span-2 text-center py-6 border border-dashed border-border text-zinc-500 text-sm">
+          <div className="text-center py-6 border border-dashed border-border text-zinc-500 text-sm">
             No custom global presets saved yet.
           </div>
         )}
@@ -1392,12 +1516,16 @@ function BuildQueueStep() {
   const [queue, setQueue] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [batching, setBatching] = useState(false);
+  const [showTemplater, setShowTemplater] = useState(false);
+  const [templatePreset, setTemplatePreset] = useState('');
+  const [templateModels, setTemplateModels] = useState<string[]>(['7590']);
   
   const [dragItem, setDragItem] = useState<number | null>(null);
   const [dragOverItem, setDragOverItem] = useState<number | null>(null);
   
   const [viewHistory, setViewHistory] = useState(false);
   const [batchHistory, setBatchHistory] = useState<any[]>([]);
+  const [allPresets, setAllPresets] = useState<BuildPreset[]>([]);
 
   const fetchQueue = () => {
     if (viewHistory) return;
@@ -1409,6 +1537,10 @@ function BuildQueueStep() {
       })
       .catch(() => setLoading(false));
   };
+
+  useEffect(() => {
+    fetch('/api/presets').then(r => r.json()).then(setAllPresets).catch(console.error);
+  }, []);
 
   useEffect(() => {
     fetchQueue();
@@ -1425,20 +1557,33 @@ function BuildQueueStep() {
     }
   }, [viewHistory]);
 
-  const triggerBatch = async () => {
+  const toggleTemplateModel = (model: string) => {
+    setTemplateModels(prev => prev.includes(model) ? prev.filter(m => m !== model) : [...prev, model]);
+  };
+
+  const dispatchBatchTemplate = async () => {
+    if (!templatePreset || templateModels.length === 0) return;
     setBatching(true);
+    
+    const preset = allPresets.find(p => p.id === templatePreset);
+    if (!preset) {
+      setBatching(false);
+      return;
+    }
+
+    const configs = templateModels.map(model => ({
+      model,
+      packages: preset.packages
+    }));
+
     try {
       await fetch('/api/batch-process', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          configs: [
-            { model: '7530', packages: ['OpenVPN'] },
-            { model: '7490', packages: ['WireGuard', 'nano'] }
-          ]
-        })
+        body: JSON.stringify({ configs })
       });
       fetchQueue();
+      setShowTemplater(false);
     } catch (e) {
       console.error(e);
     }
@@ -1483,16 +1628,61 @@ function BuildQueueStep() {
           </button>
           {!viewHistory && (
             <button 
-              onClick={triggerBatch}
-              disabled={batching}
-              className="bg-amber-500 rounded-md hover:bg-amber-400 disabled:opacity-50 text-black px-6 py-2 text-xs uppercase font-bold tracking-wider transition-colors flex items-center gap-2"
+              onClick={() => setShowTemplater(!showTemplater)}
+              className={`border border-border rounded-md px-4 py-2 text-xs uppercase font-bold tracking-wider transition-colors flex items-center gap-2 ${showTemplater ? 'bg-amber-500/10 text-amber-500 border-amber-500/30' : 'bg-surface hover:bg-white/5 text-zinc-300'}`}
             >
-              {batching ? 'Dispatching...' : 'Batch Process Standards'}
+              Template Matrix
               <Layers className="w-4 h-4" />
             </button>
           )}
         </div>
       </div>
+
+      {showTemplater && !viewHistory && (
+        <div className="bg-surface border border-border rounded-xl p-5 mb-6 shadow-xl shrink-0">
+          <h3 className="text-sm font-semibold text-zinc-200 mb-4 flex items-center gap-2">
+            <Layers className="w-4 h-4 text-amber-500" />
+            Batch Template Generator
+          </h3>
+          <div className="grid grid-cols-2 gap-6">
+            <div>
+              <label className="block text-[10px] uppercase font-bold text-zinc-500 tracking-widest mb-2">Base Custom Preset</label>
+              <select 
+                value={templatePreset}
+                onChange={e => setTemplatePreset(e.target.value)}
+                className="w-full bg-background border border-border rounded-md px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:border-amber-500 transition-colors"
+              >
+                <option value="">-- Select a Base Preset --</option>
+                {allPresets.map(p => (
+                  <option key={p.id} value={p.id}>{p.name} ({p.packages.length} pkgs)</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-[10px] uppercase font-bold text-zinc-500 tracking-widest mb-2">Target Hardware Models</label>
+              <div className="grid grid-cols-3 gap-2">
+                {['7590', '7530', '7490', '6591', '3390', '7520'].map(model => (
+                  <label key={model} className="flex items-center gap-2 cursor-pointer group" onClick={(e) => { e.preventDefault(); toggleTemplateModel(model); }}>
+                    <div className={`w-3.5 h-3.5 border rounded-sm flex items-center justify-center transition-colors ${templateModels.includes(model) ? 'bg-amber-500 border-amber-500' : 'border-border group-hover:border-zinc-500'}`}>
+                      {templateModels.includes(model) && <CheckIcon />}
+                    </div>
+                    <span className="text-xs font-mono text-zinc-300">{model}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div className="mt-6 flex justify-end">
+            <button 
+              onClick={dispatchBatchTemplate}
+              disabled={batching || !templatePreset || templateModels.length === 0}
+              className="bg-amber-500 rounded-md hover:bg-amber-400 disabled:opacity-50 text-black px-6 py-2 text-xs uppercase font-bold tracking-wider transition-colors"
+            >
+              {batching ? 'Dispatching Matrix...' : `Dispatch ${templateModels.length} Builds`}
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="flex-1 overflow-y-auto pr-4 space-y-4">
         {viewHistory ? (
