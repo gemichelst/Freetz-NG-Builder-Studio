@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Terminal, Save, Download, Cpu, HardDrive, Wifi, Shield, Play, Settings, AlertTriangle, CheckCircle2, Activity, Server, FileText } from 'lucide-react';
+import { Terminal, Save, Download, Cpu, HardDrive, Wifi, Shield, Play, Settings, AlertTriangle, CheckCircle2, Activity, Server, FileText, Calendar, GitCompare, ListChecks, Layers } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
@@ -63,7 +63,8 @@ export default function App() {
             <StepLink step={1} current={activeStep} onClick={() => setActiveStep(1)} label="Hardware Config" icon={<Settings className="w-4 h-4" />} />
             <StepLink step={2} current={activeStep} onClick={() => setActiveStep(2)} label="Packages" icon={<HardDrive className="w-4 h-4" />} />
             <StepLink step={3} current={activeStep} onClick={() => setActiveStep(3)} label="Execution" icon={<Play className="w-4 h-4" />} />
-            <StepLink step={4} current={activeStep} onClick={() => setActiveStep(4)} label="Image Hub" icon={<Download className="w-4 h-4" />} />
+            <StepLink step={4} current={activeStep} onClick={() => setActiveStep(4)} label="Version Compare" icon={<GitCompare className="w-4 h-4" />} />
+            <StepLink step={5} current={activeStep} onClick={() => setActiveStep(5)} label="Image Hub" icon={<Download className="w-4 h-4" />} />
           </nav>
           <div className="p-4 border-t border-border text-[10px] text-zinc-500 uppercase tracking-widest">
             v2.4.0-stable
@@ -95,6 +96,11 @@ export default function App() {
             )}
             {activeStep === 4 && (
               <StepWrapper key="step4">
+                <VersionComparatorStep />
+              </StepWrapper>
+            )}
+            {activeStep === 5 && (
+              <StepWrapper key="step5">
                 <ImageHubStep config={config} />
               </StepWrapper>
             )}
@@ -239,16 +245,59 @@ function PackagesStep({ config, onChange, onNext }: { config: BuildPreset, onCha
     }
   ];
 
+  const allPackages = categories.flatMap(c => c.items);
+
+  const toggleCategory = (items: string[]) => {
+    const allSelected = items.every(item => config.packages.includes(item));
+    if (allSelected) {
+      onChange('packages', config.packages.filter(p => !items.includes(p)));
+    } else {
+      const newPkgs = [...config.packages];
+      items.forEach(item => {
+        if (!newPkgs.includes(item)) newPkgs.push(item);
+      });
+      onChange('packages', newPkgs);
+    }
+  };
+
   return (
     <div className="max-w-4xl flex flex-col h-full">
-      <h2 className="text-xl font-semibold text-zinc-100 mb-6 shrink-0">Package Selection</h2>
+      <div className="flex items-center justify-between mb-6 shrink-0">
+        <h2 className="text-xl font-semibold text-zinc-100">Package Selection</h2>
+        <div className="flex gap-2">
+          <button 
+            onClick={() => onChange('packages', allPackages)}
+            className="flex items-center gap-1.5 px-3 py-1.5 border border-border rounded-md hover:bg-white/5 text-xs text-zinc-300 font-medium transition-colors"
+          >
+            <ListChecks className="w-3 h-3" /> Select All
+          </button>
+          <button 
+            onClick={() => onChange('packages', [])}
+            className="flex items-center gap-1.5 px-3 py-1.5 border border-border rounded-md hover:bg-white/5 text-xs text-zinc-300 font-medium transition-colors"
+          >
+            Clear All
+          </button>
+        </div>
+      </div>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 overflow-y-auto">
-        {categories.map(cat => (
+        {categories.map(cat => {
+          const catSelectedCount = cat.items.filter(item => config.packages.includes(item)).length;
+          const isAllSelected = catSelectedCount === cat.items.length;
+          
+          return (
           <div key={cat.title} className="bg-surface border border-border p-5 rounded-xl">
-            <div className="flex items-center gap-2 text-amber-500 mb-4 border-b border-border pb-2">
-              {cat.icon}
-              <h3 className="text-xs uppercase tracking-wider font-semibold">{cat.title}</h3>
+            <div className="flex items-center justify-between text-amber-500 mb-4 border-b border-border pb-2">
+              <div className="flex items-center gap-2">
+                {cat.icon}
+                <h3 className="text-xs uppercase tracking-wider font-semibold">{cat.title}</h3>
+              </div>
+              <button 
+                onClick={() => toggleCategory(cat.items)}
+                className="text-[10px] text-zinc-500 hover:text-amber-500 uppercase tracking-widest font-mono transition-colors"
+              >
+                {isAllSelected ? 'Deselect' : 'Select'}
+              </button>
             </div>
             <div className="space-y-3">
               {cat.items.map(pkg => (
@@ -261,7 +310,8 @@ function PackagesStep({ config, onChange, onNext }: { config: BuildPreset, onCha
               ))}
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
 
       <div className="mt-auto flex justify-between shrink-0">
@@ -282,6 +332,8 @@ function ExecutionStep({ config }: { config: BuildPreset }) {
   const [logs, setLogs] = useState<string[]>([]);
   const [progress, setProgress] = useState(0);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [showSchedule, setShowSchedule] = useState(false);
+  const [scheduleTime, setScheduleTime] = useState('');
 
   const generateScript = async () => {
     try {
@@ -292,6 +344,21 @@ function ExecutionStep({ config }: { config: BuildPreset }) {
       });
       const data = await res.json();
       setScript(data.script);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const scheduleBuild = async () => {
+    if (!scheduleTime) return;
+    try {
+      await fetch('/api/schedule-build', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scheduleTime, config })
+      });
+      setShowSchedule(false);
+      alert(`Build successfully scheduled for ${scheduleTime}`);
     } catch (e) {
       console.error(e);
     }
@@ -341,12 +408,53 @@ function ExecutionStep({ config }: { config: BuildPreset }) {
         message="Are you sure you want to execute the build scripts on your host environment? This will download packages, run compilations, and potentially flash your hardware."
         confirmText="Start Build"
       />
+
+      {showSchedule && (
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-surface border border-border rounded-xl shadow-2xl max-w-md w-full overflow-hidden"
+          >
+            <div className="p-6">
+              <div className="flex items-center gap-3 text-blue-500 mb-4">
+                <Calendar className="w-6 h-6" />
+                <h3 className="text-lg font-bold text-zinc-100">Schedule Build</h3>
+              </div>
+              <p className="text-sm text-zinc-300 mb-4">Set a cron expression or a specific time to schedule this build pipeline.</p>
+              <input 
+                type="text" 
+                placeholder="e.g. 0 2 * * * (Daily at 2 AM)"
+                value={scheduleTime}
+                onChange={e => setScheduleTime(e.target.value)}
+                className="w-full bg-background border border-border rounded-md px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:border-amber-500"
+              />
+            </div>
+            <div className="px-6 py-4 bg-[#111114] border-t border-border flex justify-end gap-3">
+              <button onClick={() => setShowSchedule(false)} className="px-4 py-2 text-xs font-semibold text-zinc-400 hover:text-zinc-200 transition-colors">
+                Cancel
+              </button>
+              <button onClick={scheduleBuild} disabled={!scheduleTime} className="px-4 py-2 bg-blue-500 hover:bg-blue-400 disabled:opacity-50 text-white text-xs font-bold uppercase tracking-wider rounded-md transition-colors">
+                Schedule
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
       
       <div className="flex items-center justify-between mb-6 shrink-0">
         <h2 className="text-xl font-semibold text-zinc-100">Build Execution</h2>
         <div className="flex gap-3">
           <button onClick={generateScript} className="border border-border rounded-md hover:bg-white/5 text-zinc-300 px-4 py-1.5 text-xs uppercase font-bold tracking-wider transition-colors">
             Generate Script
+          </button>
+          <button 
+            onClick={() => setShowSchedule(true)} 
+            disabled={isRunning}
+            className="border border-border rounded-md hover:bg-white/5 disabled:opacity-50 text-zinc-300 px-4 py-1.5 text-xs uppercase font-bold tracking-wider transition-colors flex items-center gap-2"
+          >
+            Schedule
+            <Calendar className="w-3 h-3" />
           </button>
           <button 
             onClick={() => setShowConfirm(true)} 
@@ -515,6 +623,96 @@ function CheckIcon() {
   );
 }
 
+function VersionComparatorStep() {
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+
+  const compareVersions = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/compare-versions');
+      const json = await res.json();
+      setData(json);
+    } catch (e) {
+      console.error(e);
+    }
+    setLoading(false);
+  };
+
+  return (
+    <div className="max-w-4xl flex flex-col h-full">
+      <div className="flex items-center justify-between mb-6 shrink-0">
+        <h2 className="text-xl font-semibold text-zinc-100">Version Comparator</h2>
+        <button 
+          onClick={compareVersions} 
+          disabled={loading}
+          className="bg-amber-500 rounded-md hover:bg-amber-400 disabled:opacity-50 text-black px-6 py-2 text-xs uppercase font-bold tracking-wider transition-colors flex items-center gap-2"
+        >
+          {loading ? 'Comparing...' : 'Run Comparison'}
+          <GitCompare className="w-4 h-4" />
+        </button>
+      </div>
+
+      <div className="flex-1 overflow-y-auto pr-4 pb-12">
+        {!data ? (
+          <div className="h-64 flex items-center justify-center border border-dashed border-border rounded-xl">
+            <span className="text-sm text-zinc-500">Click "Run Comparison" to analyze package changes between Freetz-NG versions.</span>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            <div className="flex items-center gap-4 p-4 bg-surface border border-border rounded-xl justify-center">
+              <span className="text-lg font-bold text-zinc-300">{data.baseVersion}</span>
+              <span className="text-zinc-500">→</span>
+              <span className="text-lg font-bold text-amber-500">{data.targetVersion}</span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="bg-[#111114] border border-border rounded-xl overflow-hidden shadow-sm">
+                <div className="bg-[#1c1c21] px-4 py-2 border-b border-border flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                  <h3 className="text-xs uppercase font-bold text-zinc-200 tracking-wider">Added Packages</h3>
+                </div>
+                <div className="p-4 space-y-2">
+                  {data.added.map((pkg: string, i: number) => (
+                    <div key={i} className="text-sm text-green-400 font-mono">+ {pkg}</div>
+                  ))}
+                  {data.added.length === 0 && <div className="text-sm text-zinc-500">None</div>}
+                </div>
+              </div>
+
+              <div className="bg-[#111114] border border-border rounded-xl overflow-hidden shadow-sm">
+                <div className="bg-[#1c1c21] px-4 py-2 border-b border-border flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-red-500"></div>
+                  <h3 className="text-xs uppercase font-bold text-zinc-200 tracking-wider">Removed Packages</h3>
+                </div>
+                <div className="p-4 space-y-2">
+                  {data.removed.map((pkg: string, i: number) => (
+                    <div key={i} className="text-sm text-red-400 font-mono">- {pkg}</div>
+                  ))}
+                  {data.removed.length === 0 && <div className="text-sm text-zinc-500">None</div>}
+                </div>
+              </div>
+
+              <div className="bg-[#111114] border border-border rounded-xl overflow-hidden shadow-sm md:col-span-2">
+                <div className="bg-[#1c1c21] px-4 py-2 border-b border-border flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                  <h3 className="text-xs uppercase font-bold text-zinc-200 tracking-wider">Updated Packages</h3>
+                </div>
+                <div className="p-4 space-y-2">
+                  {data.updated.map((pkg: string, i: number) => (
+                    <div key={i} className="text-sm text-blue-400 font-mono">~ {pkg}</div>
+                  ))}
+                  {data.updated.length === 0 && <div className="text-sm text-zinc-500">None</div>}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function ImageHubStep({ config }: { config: BuildPreset }) {
   const dummyImages = [
     { id: 'img-1', model: '7590', os: '07.29', date: '2023-10-01', size: '28.4 MB', pkgs: 'OpenVPN, Nano, htop' },
@@ -578,86 +776,130 @@ function ImageHubStep({ config }: { config: BuildPreset }) {
 function DashboardStep() {
   const [dockerStatus, setDockerStatus] = useState<any>(null);
   const [buildHealth, setBuildHealth] = useState<any[]>([]);
+  const [resources, setResources] = useState<any[]>([]);
 
   useEffect(() => {
     fetch('/api/docker-status').then(r => r.json()).then(setDockerStatus).catch(() => {});
     fetch('/api/build-health').then(r => r.json()).then(setBuildHealth).catch(() => {});
+    
+    // Poll resources
+    const fetchResources = () => {
+      fetch('/api/system-resources').then(r => r.json()).then(setResources).catch(() => {});
+    };
+    fetchResources();
+    const interval = setInterval(fetchResources, 2000);
+    return () => clearInterval(interval);
   }, []);
 
   return (
-    <div className="max-w-5xl">
-      <h2 className="text-xl font-semibold text-zinc-100 mb-6">System Dashboard</h2>
-      
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-surface border border-border p-5 rounded-xl flex items-center gap-4">
-          <div className="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-500">
-            <Server className="w-6 h-6" />
+    <div className="max-w-5xl flex flex-col gap-8 pb-12">
+      <div>
+        <h2 className="text-xl font-semibold text-zinc-100 mb-6">System Dashboard</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div className="bg-surface border border-border p-5 rounded-xl flex items-center gap-4">
+            <div className="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-500">
+              <Server className="w-6 h-6" />
+            </div>
+            <div>
+              <p className="text-[10px] text-zinc-500 uppercase tracking-widest">Docker Daemon</p>
+              <p className="text-lg font-bold text-zinc-100">
+                {dockerStatus ? (dockerStatus.running ? 'RUNNING' : 'STOPPED') : 'LOADING...'}
+              </p>
+              {dockerStatus && dockerStatus.running && (
+                <p className="text-xs text-zinc-400 mt-1">{dockerStatus.activeContainers} Containers • v{dockerStatus.version}</p>
+              )}
+            </div>
           </div>
-          <div>
-            <p className="text-[10px] text-zinc-500 uppercase tracking-widest">Docker Daemon</p>
-            <p className="text-lg font-bold text-zinc-100">
-              {dockerStatus ? (dockerStatus.running ? 'RUNNING' : 'STOPPED') : 'LOADING...'}
-            </p>
-            {dockerStatus && dockerStatus.running && (
-              <p className="text-xs text-zinc-400 mt-1">{dockerStatus.activeContainers} Containers • v{dockerStatus.version}</p>
-            )}
-          </div>
-        </div>
 
-        <div className="bg-surface border border-border p-5 rounded-xl flex items-center gap-4">
-          <div className="w-12 h-12 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-500">
-            <Activity className="w-6 h-6" />
+          <div className="bg-surface border border-border p-5 rounded-xl flex items-center gap-4">
+            <div className="w-12 h-12 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-500">
+              <Activity className="w-6 h-6" />
+            </div>
+            <div>
+              <p className="text-[10px] text-zinc-500 uppercase tracking-widest">System Load</p>
+              <p className="text-lg font-bold text-zinc-100">
+                {dockerStatus ? dockerStatus.memoryUsage : 'LOADING...'}
+              </p>
+              <p className="text-xs text-zinc-400 mt-1">Memory Allocation</p>
+            </div>
           </div>
-          <div>
-            <p className="text-[10px] text-zinc-500 uppercase tracking-widest">System Load</p>
-            <p className="text-lg font-bold text-zinc-100">
-              {dockerStatus ? dockerStatus.memoryUsage : 'LOADING...'}
-            </p>
-            <p className="text-xs text-zinc-400 mt-1">Memory Allocation</p>
-          </div>
-        </div>
 
-        <div className="bg-surface border border-border p-5 rounded-xl flex items-center gap-4">
-          <div className="w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center text-green-500">
-            <CheckCircle2 className="w-6 h-6" />
-          </div>
-          <div>
-            <p className="text-[10px] text-zinc-500 uppercase tracking-widest">Environment</p>
-            <p className="text-lg font-bold text-zinc-100">READY</p>
-            <p className="text-xs text-zinc-400 mt-1">Debian Build Host</p>
+          <div className="bg-surface border border-border p-5 rounded-xl flex items-center gap-4">
+            <div className="w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center text-green-500">
+              <CheckCircle2 className="w-6 h-6" />
+            </div>
+            <div>
+              <p className="text-[10px] text-zinc-500 uppercase tracking-widest">Environment</p>
+              <p className="text-lg font-bold text-zinc-100">READY</p>
+              <p className="text-xs text-zinc-400 mt-1">Debian Build Host</p>
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="bg-surface border border-border rounded-xl p-5 shadow-sm">
-        <h3 className="text-sm font-semibold uppercase tracking-wider text-zinc-300 mb-6">Build Health (7 Days)</h3>
-        <div className="h-64 w-full">
-          {buildHealth.length > 0 ? (
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={buildHealth} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="colorSuccess" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
-                  </linearGradient>
-                  <linearGradient id="colorFailed" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#ef4444" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <XAxis dataKey="date" stroke="#52525b" fontSize={12} tickLine={false} axisLine={false} />
-                <YAxis stroke="#52525b" fontSize={12} tickLine={false} axisLine={false} />
-                <Tooltip 
-                  contentStyle={{ backgroundColor: '#111114', borderColor: '#27272a', borderRadius: '8px' }}
-                  itemStyle={{ fontSize: '12px' }}
-                />
-                <Area type="monotone" dataKey="success" stroke="#10b981" fillOpacity={1} fill="url(#colorSuccess)" name="Successful Builds" />
-                <Area type="monotone" dataKey="failed" stroke="#ef4444" fillOpacity={1} fill="url(#colorFailed)" name="Failed Builds" />
-              </AreaChart>
-            </ResponsiveContainer>
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-zinc-500">Loading chart data...</div>
-          )}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="bg-surface border border-border rounded-xl p-5 shadow-sm">
+          <h3 className="text-sm font-semibold uppercase tracking-wider text-zinc-300 mb-6">Build Health (7 Days)</h3>
+          <div className="h-64 w-full">
+            {buildHealth.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={buildHealth} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="colorSuccess" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                    </linearGradient>
+                    <linearGradient id="colorFailed" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="#ef4444" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <XAxis dataKey="date" stroke="#52525b" fontSize={12} tickLine={false} axisLine={false} />
+                  <YAxis stroke="#52525b" fontSize={12} tickLine={false} axisLine={false} />
+                  <Tooltip 
+                    contentStyle={{ backgroundColor: '#111114', borderColor: '#27272a', borderRadius: '8px' }}
+                    itemStyle={{ fontSize: '12px' }}
+                  />
+                  <Area type="monotone" dataKey="success" stroke="#10b981" fillOpacity={1} fill="url(#colorSuccess)" name="Successful Builds" />
+                  <Area type="monotone" dataKey="failed" stroke="#ef4444" fillOpacity={1} fill="url(#colorFailed)" name="Failed Builds" />
+                </AreaChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-zinc-500">Loading chart data...</div>
+            )}
+          </div>
+        </div>
+
+        <div className="bg-surface border border-border rounded-xl p-5 shadow-sm flex flex-col">
+          <h3 className="text-sm font-semibold uppercase tracking-wider text-zinc-300 mb-6">Resource Monitoring (Live)</h3>
+          <div className="h-64 w-full flex-1">
+            {resources.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={resources} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="colorCpu" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="#f59e0b" stopOpacity={0}/>
+                    </linearGradient>
+                    <linearGradient id="colorMem" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <XAxis dataKey="time" stroke="#52525b" fontSize={12} tickLine={false} axisLine={false} />
+                  <YAxis stroke="#52525b" fontSize={12} tickLine={false} axisLine={false} domain={[0, 100]} />
+                  <Tooltip 
+                    contentStyle={{ backgroundColor: '#111114', borderColor: '#27272a', borderRadius: '8px' }}
+                    itemStyle={{ fontSize: '12px' }}
+                  />
+                  <Area type="monotone" dataKey="cpu" stroke="#f59e0b" fillOpacity={1} fill="url(#colorCpu)" name="CPU Usage %" />
+                  <Area type="monotone" dataKey="memory" stroke="#3b82f6" fillOpacity={1} fill="url(#colorMem)" name="Memory Usage %" />
+                </AreaChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-zinc-500">Loading resources...</div>
+            )}
+          </div>
         </div>
       </div>
     </div>

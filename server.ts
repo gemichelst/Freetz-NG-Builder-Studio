@@ -47,6 +47,32 @@ async function startServer() {
     ]);
   });
 
+  app.get("/api/system-resources", (req, res) => {
+    // Return last 10 ticks for live monitoring
+    const data = Array.from({ length: 15 }).map((_, i) => ({
+      time: `-${15 - i}s`,
+      cpu: Math.floor(Math.random() * 30) + 15,
+      memory: Math.floor(Math.random() * 10) + 40,
+      diskIo: Math.floor(Math.random() * 50) + 5
+    }));
+    res.json(data);
+  });
+
+  app.post("/api/schedule-build", (req, res) => {
+    const { scheduleTime, config } = req.body;
+    res.json({ success: true, message: `Build scheduled successfully for ${scheduleTime}` });
+  });
+
+  app.get("/api/compare-versions", (req, res) => {
+    res.json({
+      baseVersion: "2.3-stable",
+      targetVersion: "2.4-stable",
+      added: ["wireguard-tools (1.0.2)", "nano (7.2)", "curl (8.1.0)"],
+      removed: ["old-package-deprecated (1.0)"],
+      updated: ["openssl (1.1.1 -> 3.0.8)", "dnsmasq (2.85 -> 2.89)"]
+    });
+  });
+
   app.post("/api/generate-script", (req, res) => {
     const config = req.body;
     
