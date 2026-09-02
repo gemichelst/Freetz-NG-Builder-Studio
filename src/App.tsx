@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Terminal, Save, Download, Cpu, HardDrive, Wifi, Shield, Play, Settings, AlertTriangle, CheckCircle2, Activity, Server, FileText, Calendar, GitCompare, ListChecks, Layers, Search, Zap, History, Bell, ListOrdered, RefreshCw, GripVertical, Archive } from 'lucide-react';
+import { Terminal, Save, Download, Cpu, HardDrive, Wifi, Shield, Play, Settings, AlertTriangle, CheckCircle2, Activity, Server, FileText, Calendar, GitCompare, ListChecks, Layers, Search, Zap, History, Bell, ListOrdered, RefreshCw, GripVertical, Archive, Globe } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { PACKAGES_DB } from './data/packages';
 
 export type BuildPreset = {
   id?: string;
@@ -14,6 +15,7 @@ export type BuildPreset = {
   packages: string[];
   externalTarget: boolean;
   buildMethod: 'direct' | 'docker';
+  webhookUrl?: string;
 };
 
 export default function App() {
@@ -234,6 +236,16 @@ function ConfigStep({ config, onChange, onNext }: { config: BuildPreset, onChang
           </select>
         </div>
         <div className="space-y-2 col-span-2">
+          <label className="text-[10px] uppercase tracking-widest text-zinc-500">Build Webhook URL (Optional)</label>
+          <input 
+            type="text" 
+            placeholder="https://your-server.com/webhook"
+            value={config.webhookUrl || ''}
+            onChange={e => onChange('webhookUrl', e.target.value)}
+            className="w-full bg-surface border border-border rounded-md px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:border-amber-500 transition-colors"
+          />
+        </div>
+        <div className="space-y-2 col-span-2">
           <label className="flex items-center gap-3 cursor-pointer group">
             <div className={`w-4 h-4 border rounded-sm flex items-center justify-center transition-colors ${config.autoFlash ? 'bg-amber-500 border-amber-500' : 'border-border group-hover:border-zinc-500'}`}>
               {config.autoFlash && <CheckIcon />}
@@ -260,55 +272,18 @@ function ConfigStep({ config, onChange, onNext }: { config: BuildPreset, onChang
   );
 }
 
-const PACKAGES_DB = [
-  { cat: 'Patches', icon: <Layers className="w-4 h-4" />, items: [
-    { id: 'Remove brandings', req: [], conf: [], estSize: 0, estTime: 1, incompatModels: [] },
-    { id: 'Replace kernel', req: [], conf: [], estSize: 1.5, estTime: 8, incompatModels: ['3390', '7520'] },
-    { id: 'Freetzmount', req: [], conf: [], estSize: 0.2, estTime: 2, incompatModels: [] },
-    { id: 'Maxdev', req: [], conf: [], estSize: 2.1, estTime: 5, incompatModels: [] }
-  ]},
-  { cat: 'Themes', icon: <Play className="w-4 h-4" />, items: [
-    { id: 'Cuma', req: [], conf: [], estSize: 1.1, estTime: 1, incompatModels: [] },
-    { id: 'Legacy', req: [], conf: [], estSize: 0.5, estTime: 1, incompatModels: [] },
-    { id: 'Newfreetz', req: [], conf: [], estSize: 1.3, estTime: 1, incompatModels: [] },
-    { id: 'Phoenix', req: [], conf: [], estSize: 1.8, estTime: 2, incompatModels: [] }
-  ]},
-  { cat: 'Network', icon: <Wifi className="w-4 h-4" />, items: [
-    { id: 'Dnsmasq', req: [], conf: ['dnsd'], estSize: 0.8, estTime: 2, incompatModels: [] },
-    { id: 'dnsd', req: [], conf: ['Dnsmasq'], estSize: 0.4, estTime: 1, incompatModels: [] },
-    { id: 'Downloader', req: [], conf: [], estSize: 0.3, estTime: 1, incompatModels: [] },
-    { id: 'Mosquitto', req: ['libssl', 'libcrypto'], conf: [], estSize: 1.2, estTime: 4, incompatModels: [] },
-    { id: 'NFS-Server', req: [], conf: [], estSize: 1.6, estTime: 5, incompatModels: [] },
-    { id: 'Wake-on-LAN', req: [], conf: [], estSize: 0.1, estTime: 1, incompatModels: [] },
-    { id: 'OpenVPN', req: ['libssl', 'liblzo2'], conf: [], estSize: 2.2, estTime: 6, incompatModels: [] },
-    { id: 'WireGuard', req: ['Replace kernel'], conf: [], estSize: 1.5, estTime: 5, incompatModels: ['3390', '7520'] }
-  ]},
-  { cat: 'System', icon: <Settings className="w-4 h-4" />, items: [
-    { id: 'Dropbear', req: [], conf: [], estSize: 0.6, estTime: 2, incompatModels: [] },
-    { id: 'Inetd', req: [], conf: [], estSize: 0.1, estTime: 1, incompatModels: [] },
-    { id: 'Syslogd', req: [], conf: [], estSize: 0.2, estTime: 1, incompatModels: [] },
-    { id: 'Swap', req: [], conf: [], estSize: 0.1, estTime: 1, incompatModels: [] },
-    { id: 'cronD', req: [], conf: [], estSize: 0.2, estTime: 1, incompatModels: [] },
-    { id: 'onlinechanged', req: [], conf: [], estSize: 0.1, estTime: 1, incompatModels: [] },
-    { id: 'Screen', req: [], conf: [], estSize: 0.5, estTime: 2, incompatModels: [] },
-    { id: 'SSH authorized-keys', req: [], conf: [], estSize: 0.1, estTime: 1, incompatModels: [] },
-    { id: 'Addhole', req: [], conf: [], estSize: 0.9, estTime: 3, incompatModels: [] }
-  ]},
-  { cat: 'Misc / Tools', icon: <Terminal className="w-4 h-4" />, items: [
-    { id: 'LCD4linux', req: [], conf: [], estSize: 1.4, estTime: 4, incompatModels: ['3390'] },
-    { id: 'tcpdump', req: [], conf: [], estSize: 0.7, estTime: 2, incompatModels: [] },
-    { id: 'strace', req: [], conf: [], estSize: 0.6, estTime: 2, incompatModels: [] },
-    { id: 'nano', req: [], conf: [], estSize: 0.3, estTime: 1, incompatModels: [] },
-    { id: 'htop', req: [], conf: [], estSize: 0.4, estTime: 1, incompatModels: [] },
-    { id: 'mc', req: [], conf: [], estSize: 1.8, estTime: 3, incompatModels: [] }
-  ]},
-  { cat: 'Libraries', icon: <Archive className="w-4 h-4" />, items: [
-    { id: 'libcrypto', req: [], conf: [], estSize: 1.2, estTime: 3, incompatModels: [] },
-    { id: 'libssl', req: [], conf: [], estSize: 1.4, estTime: 3, incompatModels: [] },
-    { id: 'liblzo2', req: [], conf: [], estSize: 0.5, estTime: 1, incompatModels: [] },
-    { id: 'zlib', req: [], conf: [], estSize: 0.4, estTime: 1, incompatModels: [] }
-  ]}
-];
+const iconMap: Record<string, React.ReactNode> = {
+  Layers: <Layers className="w-4 h-4" />,
+  Play: <Play className="w-4 h-4" />,
+  Wifi: <Wifi className="w-4 h-4" />,
+  Settings: <Settings className="w-4 h-4" />,
+  Terminal: <Terminal className="w-4 h-4" />,
+  Archive: <Archive className="w-4 h-4" />,
+  Activity: <Activity className="w-4 h-4" />,
+  Cpu: <Cpu className="w-4 h-4" />,
+  AlertTriangle: <AlertTriangle className="w-4 h-4" />,
+  Globe: <Globe className="w-4 h-4" />
+};
 
 function PackagesStep({ config, onChange, onNext }: { config: BuildPreset, onChange: (k: keyof BuildPreset, v: any) => void, onNext: () => void }) {
   const [alertMsg, setAlertMsg] = useState<{ type: 'error' | 'info', text: string } | null>(null);
@@ -416,9 +391,39 @@ function PackagesStep({ config, onChange, onNext }: { config: BuildPreset, onCha
 
   const { size: estSize, time: estTime } = calcEstimates();
   const [showViz, setShowViz] = useState(false);
+  const [hoveredTheme, setHoveredTheme] = useState<any>(null);
 
   return (
     <div className="max-w-6xl flex flex-col h-full relative">
+      {hoveredTheme && hoveredTheme.themeStyle && (
+        <div className="absolute right-4 top-16 bg-panel border border-border rounded-xl shadow-2xl p-4 w-64 z-20 pointer-events-none transition-opacity duration-300">
+          <div className="text-[10px] uppercase font-bold text-zinc-500 tracking-widest mb-2 flex items-center justify-between">
+            <span>Theme Preview</span>
+            <span className="text-amber-500">{hoveredTheme.id}</span>
+          </div>
+          <div 
+            className="w-full h-32 rounded-lg border border-border/50 flex flex-col overflow-hidden shadow-inner"
+            style={{ backgroundColor: hoveredTheme.themeStyle.bg }}
+          >
+            <div className="h-6 w-full opacity-90 flex items-center px-2 shadow-sm" style={{ backgroundColor: hoveredTheme.themeStyle.header }}>
+              <div className="w-2 h-2 rounded-full bg-white/20 mr-1"></div>
+              <div className="w-2 h-2 rounded-full bg-white/20 mr-1"></div>
+              <div className="w-2 h-2 rounded-full bg-white/20"></div>
+            </div>
+            <div className="flex flex-1 p-2 gap-2">
+              <div className="w-1/3 h-full rounded opacity-50" style={{ backgroundColor: hoveredTheme.themeStyle.accent }}></div>
+              <div className="flex-1 flex flex-col gap-1.5">
+                <div className="h-2 w-3/4 rounded opacity-40" style={{ backgroundColor: hoveredTheme.themeStyle.text }}></div>
+                <div className="h-2 w-full rounded opacity-20" style={{ backgroundColor: hoveredTheme.themeStyle.text }}></div>
+                <div className="h-2 w-5/6 rounded opacity-20" style={{ backgroundColor: hoveredTheme.themeStyle.text }}></div>
+                <div className="h-2 w-1/2 rounded opacity-20 mt-auto" style={{ backgroundColor: hoveredTheme.themeStyle.text }}></div>
+              </div>
+            </div>
+          </div>
+          {hoveredTheme.description && <p className="text-xs text-zinc-400 mt-3 leading-snug">{hoveredTheme.description}</p>}
+        </div>
+      )}
+
       {showViz && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
           <div className="bg-[#1c1c21] border border-border w-full max-w-2xl rounded-xl shadow-2xl flex flex-col max-h-[80vh]">
@@ -541,7 +546,7 @@ function PackagesStep({ config, onChange, onNext }: { config: BuildPreset, onCha
             <div key={cat.cat} className="bg-surface border border-border p-4 rounded-xl flex flex-col max-h-80">
               <div className="flex items-center justify-between text-amber-500 mb-3 border-b border-border pb-2 shrink-0">
                 <div className="flex items-center gap-2">
-                  {cat.icon}
+                  {iconMap[cat.iconName] || <Settings className="w-4 h-4" />}
                   <h3 className="text-[10px] uppercase tracking-widest font-bold text-zinc-300">{cat.cat}</h3>
                 </div>
                 <button 
@@ -553,7 +558,13 @@ function PackagesStep({ config, onChange, onNext }: { config: BuildPreset, onCha
               </div>
               <div className="space-y-1 overflow-y-auto flex-1 pr-2 custom-scrollbar">
                 {cat.items.map(pkg => (
-                  <div key={pkg.id} className="flex items-center justify-between py-1 hover:bg-white/5 px-2 -mx-2 rounded-md transition-colors cursor-pointer" onClick={() => togglePackage(pkg.id)}>
+                  <div 
+                    key={pkg.id} 
+                    className="flex items-center justify-between py-1 hover:bg-white/5 px-2 -mx-2 rounded-md transition-colors cursor-pointer" 
+                    onClick={() => togglePackage(pkg.id)}
+                    onMouseEnter={() => cat.cat === 'Themes' ? setHoveredTheme(pkg) : null}
+                    onMouseLeave={() => setHoveredTheme(null)}
+                  >
                     <label className="flex items-center gap-3 cursor-pointer group pointer-events-none">
                       <div className={`w-3.5 h-3.5 border rounded-sm flex items-center justify-center shrink-0 transition-colors ${config.packages.includes(pkg.id) ? 'bg-amber-500 border-amber-500' : 'border-zinc-600 group-hover:border-zinc-400'}`}>
                         {config.packages.includes(pkg.id) && <CheckIcon />}
@@ -1030,85 +1041,135 @@ function CheckIcon() {
 }
 
 function VersionComparatorStep() {
-  const [data, setData] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
+  const [presets, setPresets] = useState<BuildPreset[]>([]);
+  const [presetAId, setPresetAId] = useState('');
+  const [presetBId, setPresetBId] = useState('');
+  const [diff, setDiff] = useState<any>(null);
 
-  const compareVersions = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch('/api/compare-versions');
-      const json = await res.json();
-      setData(json);
-    } catch (e) {
-      console.error(e);
-    }
-    setLoading(false);
+  useEffect(() => {
+    fetch('/api/presets').then(r => r.json()).then(data => {
+      setPresets(data);
+    }).catch(console.error);
+  }, []);
+
+  const runDiff = () => {
+    const a = presets.find(p => p.id === presetAId);
+    const b = presets.find(p => p.id === presetBId);
+    if (!a || !b) return;
+
+    const added = b.packages.filter(pkg => !a.packages.includes(pkg));
+    const removed = a.packages.filter(pkg => !b.packages.includes(pkg));
+    const shared = a.packages.filter(pkg => b.packages.includes(pkg));
+
+    setDiff({
+      a, b, added, removed, shared
+    });
   };
 
   return (
     <div className="max-w-4xl flex flex-col h-full">
       <div className="flex items-center justify-between mb-6 shrink-0">
-        <h2 className="text-xl font-semibold text-zinc-100">Version Comparator</h2>
+        <div>
+          <h2 className="text-xl font-semibold text-zinc-100">Build Diff Tool</h2>
+          <p className="text-xs text-zinc-500 mt-1">Compare Freetz-NG payloads and configurations.</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-6 mb-8 shrink-0">
+        <div>
+          <label className="text-[10px] uppercase font-bold text-zinc-500 tracking-widest mb-2 block">Base Build (A)</label>
+          <select 
+            value={presetAId} 
+            onChange={e => setPresetAId(e.target.value)}
+            className="w-full bg-surface border border-border rounded-md px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:border-amber-500 transition-colors"
+          >
+            <option value="">-- Select Preset A --</option>
+            {presets.map(p => <option key={p.id} value={p.id}>{p.name} ({p.model})</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="text-[10px] uppercase font-bold text-zinc-500 tracking-widest mb-2 block">Target Build (B)</label>
+          <select 
+            value={presetBId} 
+            onChange={e => setPresetBId(e.target.value)}
+            className="w-full bg-surface border border-border rounded-md px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:border-amber-500 transition-colors"
+          >
+            <option value="">-- Select Preset B --</option>
+            {presets.map(p => <option key={p.id} value={p.id}>{p.name} ({p.model})</option>)}
+          </select>
+        </div>
+      </div>
+      
+      <div className="flex justify-center mb-8 shrink-0">
         <button 
-          onClick={compareVersions} 
-          disabled={loading}
+          onClick={runDiff} 
+          disabled={!presetAId || !presetBId || presetAId === presetBId}
           className="bg-amber-500 rounded-md hover:bg-amber-400 disabled:opacity-50 text-black px-6 py-2 text-xs uppercase font-bold tracking-wider transition-colors flex items-center gap-2"
         >
-          {loading ? 'Comparing...' : 'Run Comparison'}
+          Compare Builds
           <GitCompare className="w-4 h-4" />
         </button>
       </div>
 
       <div className="flex-1 overflow-y-auto pr-4 pb-12">
-        {!data ? (
-          <div className="h-64 flex items-center justify-center border border-dashed border-border rounded-xl">
-            <span className="text-sm text-zinc-500">Click "Run Comparison" to analyze package changes between Freetz-NG versions.</span>
+        {!diff ? (
+          <div className="h-48 flex items-center justify-center border border-dashed border-border rounded-xl">
+            <span className="text-sm text-zinc-500">Select two builds to analyze differences.</span>
           </div>
         ) : (
           <div className="space-y-6">
-            <div className="flex items-center gap-4 p-4 bg-surface border border-border rounded-xl justify-center">
-              <span className="text-lg font-bold text-zinc-300">{data.baseVersion}</span>
-              <span className="text-zinc-500">→</span>
-              <span className="text-lg font-bold text-amber-500">{data.targetVersion}</span>
+            <div className="grid grid-cols-2 gap-6 p-4 bg-surface border border-border rounded-xl">
+              <div>
+                <h4 className="text-xs uppercase font-bold text-zinc-500 mb-2">Build A</h4>
+                <div className="text-sm text-zinc-300">Model: <span className="font-mono text-amber-500">{diff.a.model}</span></div>
+                <div className="text-sm text-zinc-300">FritzOS: <span className="font-mono text-zinc-400">{diff.a.osVersion}</span></div>
+                <div className="text-sm text-zinc-300">Packages: {diff.a.packages.length}</div>
+              </div>
+              <div>
+                <h4 className="text-xs uppercase font-bold text-zinc-500 mb-2">Build B</h4>
+                <div className="text-sm text-zinc-300">Model: <span className="font-mono text-amber-500">{diff.b.model}</span></div>
+                <div className="text-sm text-zinc-300">FritzOS: <span className="font-mono text-zinc-400">{diff.b.osVersion}</span></div>
+                <div className="text-sm text-zinc-300">Packages: {diff.b.packages.length}</div>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="bg-[#111114] border border-border rounded-xl overflow-hidden shadow-sm">
                 <div className="bg-[#1c1c21] px-4 py-2 border-b border-border flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                  <h3 className="text-xs uppercase font-bold text-zinc-200 tracking-wider">Added Packages</h3>
+                  <h3 className="text-xs uppercase font-bold text-zinc-200 tracking-wider">Added in B</h3>
                 </div>
-                <div className="p-4 space-y-2">
-                  {data.added.map((pkg: string, i: number) => (
+                <div className="p-4 space-y-2 max-h-64 overflow-y-auto custom-scrollbar">
+                  {diff.added.map((pkg: string, i: number) => (
                     <div key={i} className="text-sm text-green-400 font-mono">+ {pkg}</div>
                   ))}
-                  {data.added.length === 0 && <div className="text-sm text-zinc-500">None</div>}
+                  {diff.added.length === 0 && <div className="text-sm text-zinc-500">No new packages</div>}
                 </div>
               </div>
 
               <div className="bg-[#111114] border border-border rounded-xl overflow-hidden shadow-sm">
                 <div className="bg-[#1c1c21] px-4 py-2 border-b border-border flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-red-500"></div>
-                  <h3 className="text-xs uppercase font-bold text-zinc-200 tracking-wider">Removed Packages</h3>
+                  <h3 className="text-xs uppercase font-bold text-zinc-200 tracking-wider">Removed in B</h3>
                 </div>
-                <div className="p-4 space-y-2">
-                  {data.removed.map((pkg: string, i: number) => (
+                <div className="p-4 space-y-2 max-h-64 overflow-y-auto custom-scrollbar">
+                  {diff.removed.map((pkg: string, i: number) => (
                     <div key={i} className="text-sm text-red-400 font-mono">- {pkg}</div>
                   ))}
-                  {data.removed.length === 0 && <div className="text-sm text-zinc-500">None</div>}
+                  {diff.removed.length === 0 && <div className="text-sm text-zinc-500">No removed packages</div>}
                 </div>
               </div>
 
               <div className="bg-[#111114] border border-border rounded-xl overflow-hidden shadow-sm md:col-span-2">
                 <div className="bg-[#1c1c21] px-4 py-2 border-b border-border flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                  <h3 className="text-xs uppercase font-bold text-zinc-200 tracking-wider">Updated Packages</h3>
+                  <div className="w-2 h-2 rounded-full bg-zinc-500"></div>
+                  <h3 className="text-xs uppercase font-bold text-zinc-200 tracking-wider">Shared Packages</h3>
                 </div>
-                <div className="p-4 space-y-2">
-                  {data.updated.map((pkg: string, i: number) => (
-                    <div key={i} className="text-sm text-blue-400 font-mono">~ {pkg}</div>
+                <div className="p-4 space-y-2 max-h-48 overflow-y-auto custom-scrollbar flex flex-wrap gap-2">
+                  {diff.shared.map((pkg: string, i: number) => (
+                    <span key={i} className="text-xs text-zinc-400 bg-white/5 px-2 py-1 rounded">{pkg}</span>
                   ))}
-                  {data.updated.length === 0 && <div className="text-sm text-zinc-500">None</div>}
+                  {diff.shared.length === 0 && <div className="text-sm text-zinc-500">No shared packages</div>}
                 </div>
               </div>
             </div>
@@ -1524,11 +1585,13 @@ function BuildQueueStep() {
   const [dragOverItem, setDragOverItem] = useState<number | null>(null);
   
   const [viewHistory, setViewHistory] = useState(false);
+  const [viewSchedule, setViewSchedule] = useState(false);
   const [batchHistory, setBatchHistory] = useState<any[]>([]);
+  const [scheduledJobs, setScheduledJobs] = useState<any[]>([]);
   const [allPresets, setAllPresets] = useState<BuildPreset[]>([]);
 
   const fetchQueue = () => {
-    if (viewHistory) return;
+    if (viewHistory || viewSchedule) return;
     fetch('/api/build-queue')
       .then(r => r.json())
       .then(data => {
@@ -1546,7 +1609,7 @@ function BuildQueueStep() {
     fetchQueue();
     const interval = setInterval(fetchQueue, 3000);
     return () => clearInterval(interval);
-  }, [viewHistory]);
+  }, [viewHistory, viewSchedule]);
 
   useEffect(() => {
     if (viewHistory && batchHistory.length === 0) {
@@ -1556,6 +1619,15 @@ function BuildQueueStep() {
         .catch(console.error);
     }
   }, [viewHistory]);
+
+  useEffect(() => {
+    if (viewSchedule && scheduledJobs.length === 0) {
+      fetch('/api/scheduled-jobs')
+        .then(r => r.json())
+        .then(setScheduledJobs)
+        .catch(console.error);
+    }
+  }, [viewSchedule]);
 
   const toggleTemplateModel = (model: string) => {
     setTemplateModels(prev => prev.includes(model) ? prev.filter(m => m !== model) : [...prev, model]);
@@ -1620,13 +1692,20 @@ function BuildQueueStep() {
         </div>
         <div className="flex items-center gap-3">
           <button 
-            onClick={() => setViewHistory(!viewHistory)}
+            onClick={() => { setViewHistory(false); setViewSchedule(true); }}
+            className={`border border-border rounded-md px-4 py-2 text-xs uppercase font-bold tracking-wider transition-colors flex items-center gap-2 ${viewSchedule ? 'bg-blue-500/10 text-blue-500 border-blue-500/30' : 'hover:bg-white/5 text-zinc-300'}`}
+          >
+            Scheduled
+            <Calendar className="w-4 h-4" />
+          </button>
+          <button 
+            onClick={() => { setViewSchedule(false); setViewHistory(!viewHistory); }}
             className={`border border-border rounded-md px-4 py-2 text-xs uppercase font-bold tracking-wider transition-colors flex items-center gap-2 ${viewHistory ? 'bg-amber-500/10 text-amber-500 border-amber-500/30' : 'hover:bg-white/5 text-zinc-300'}`}
           >
             {viewHistory ? 'Back to Queue' : 'Batch History'}
             <Archive className="w-4 h-4" />
           </button>
-          {!viewHistory && (
+          {!viewHistory && !viewSchedule && (
             <button 
               onClick={() => setShowTemplater(!showTemplater)}
               className={`border border-border rounded-md px-4 py-2 text-xs uppercase font-bold tracking-wider transition-colors flex items-center gap-2 ${showTemplater ? 'bg-amber-500/10 text-amber-500 border-amber-500/30' : 'bg-surface hover:bg-white/5 text-zinc-300'}`}
@@ -1638,7 +1717,7 @@ function BuildQueueStep() {
         </div>
       </div>
 
-      {showTemplater && !viewHistory && (
+      {showTemplater && !viewHistory && !viewSchedule && (
         <div className="bg-surface border border-border rounded-xl p-5 mb-6 shadow-xl shrink-0">
           <h3 className="text-sm font-semibold text-zinc-200 mb-4 flex items-center gap-2">
             <Layers className="w-4 h-4 text-amber-500" />
@@ -1685,7 +1764,28 @@ function BuildQueueStep() {
       )}
 
       <div className="flex-1 overflow-y-auto pr-4 space-y-4">
-        {viewHistory ? (
+        {viewSchedule ? (
+          scheduledJobs.length === 0 ? (
+            <div className="h-48 flex items-center justify-center border border-dashed border-border rounded-xl">
+              <span className="text-sm text-zinc-500">No scheduled builds.</span>
+            </div>
+          ) : (
+            scheduledJobs.map((job, idx) => (
+              <div key={idx} className="bg-surface border border-border p-4 rounded-xl flex items-center justify-between">
+                <div>
+                  <div className="text-sm font-bold text-zinc-200 mb-1 flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-blue-500" />
+                    Scheduled for: {job.scheduleTime}
+                  </div>
+                  <div className="text-xs text-zinc-400 font-mono">
+                    Target: {job.config?.model || 'Unknown'} | FW: {job.config?.osVersion || 'Unknown'} | {job.config?.packages?.length || 0} packages
+                  </div>
+                </div>
+                <button className="text-xs text-red-500 hover:text-red-400 font-bold uppercase tracking-wider">Cancel</button>
+              </div>
+            ))
+          )
+        ) : viewHistory ? (
           batchHistory.length === 0 ? (
             <div className="text-zinc-500 text-sm">Loading history...</div>
           ) : (
