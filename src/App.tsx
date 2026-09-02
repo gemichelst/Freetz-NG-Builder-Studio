@@ -19,6 +19,11 @@ export type BuildPreset = {
 };
 
 export default function App() {
+  const [theme, setTheme] = useState<string>("dark");
+  useEffect(() => {
+    document.body.setAttribute("data-theme", theme);
+  }, [theme]);
+
   const [activeStep, setActiveStep] = useState(0); // Start at Dashboard
   
   const [config, setConfig] = useState<BuildPreset>({
@@ -49,12 +54,22 @@ export default function App() {
           </h1>
         </div>
         <div className="flex items-center gap-4 text-[10px] font-mono tracking-widest text-amber-500 uppercase">
+          <select 
+            value={theme}
+            onChange={(e) => setTheme(e.target.value)}
+            className="bg-surface border border-border text-zinc-300 px-2 py-1 rounded focus:outline-none focus:border-amber-500"
+          >
+            <option value="dark">Dark Theme</option>
+            <option value="light">Light Theme</option>
+            <option value="simple">Simple Theme</option>
+            <option value="mobile">Mobile Theme</option>
+          </select>
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
             <span className="text-sm font-medium text-zinc-100">System Ready</span>
           </div>
-          <span className="ml-4">Env: Debian/Ubuntu</span>
-          <span>Target: {config.model}</span>
+          <span className="ml-4 hidden md:inline">Env: Debian/Ubuntu</span>
+          <span className="hidden md:inline">Target: {config.model}</span>
         </div>
       </header>
 
@@ -62,7 +77,7 @@ export default function App() {
         
         {/* Sidebar Nav */}
         <aside className="w-64 bg-surface border-r border-border shrink-0 flex flex-col">
-          <nav className="flex-1 p-4 space-y-2">
+          <nav className="flex-1 p-4 space-y-2 overflow-y-auto custom-scrollbar">
             <StepLink step={0} current={activeStep} onClick={() => setActiveStep(0)} label="Dashboard" icon={<Cpu className="w-4 h-4" />} />
             <StepLink step={1} current={activeStep} onClick={() => setActiveStep(1)} label="Hardware Config" icon={<Settings className="w-4 h-4" />} />
             <StepLink step={2} current={activeStep} onClick={() => setActiveStep(2)} label="Packages" icon={<HardDrive className="w-4 h-4" />} />
@@ -72,9 +87,21 @@ export default function App() {
             <StepLink step={6} current={activeStep} onClick={() => setActiveStep(6)} label="Logs History" icon={<History className="w-4 h-4" />} />
             <StepLink step={7} current={activeStep} onClick={() => setActiveStep(7)} label="Version Compare" icon={<GitCompare className="w-4 h-4" />} />
             <StepLink step={8} current={activeStep} onClick={() => setActiveStep(8)} label="Image Hub" icon={<Download className="w-4 h-4" />} />
+            <div className="pt-4 pb-2 border-t border-border mt-4">
+              <h4 className="text-[10px] uppercase font-bold text-zinc-500 tracking-widest px-2 mb-2">Help & Info</h4>
+            </div>
+            <StepLink step={9} current={activeStep} onClick={() => setActiveStep(9)} label="Wiki & Docs" icon={<FileText className="w-4 h-4" />} />
+            <StepLink step={10} current={activeStep} onClick={() => setActiveStep(10)} label="About" icon={<Terminal className="w-4 h-4" />} />
           </nav>
-          <div className="p-4 border-t border-border text-[10px] text-zinc-500 uppercase tracking-widest">
-            v2.4.0-stable
+          <div className="p-4 border-t border-border flex flex-col gap-2">
+            <div className="text-[10px] text-zinc-500 uppercase tracking-widest flex items-center justify-between">
+              <span>v2.4.1-stable</span>
+              <span className="text-amber-500">Updated</span>
+            </div>
+            <a href="https://github.com/gemichelst" target="_blank" rel="noreferrer" className="flex items-center gap-2 text-xs text-zinc-400 hover:text-zinc-200 transition-colors">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+              github.com/gemichelst
+            </a>
           </div>
         </aside>
 
@@ -124,6 +151,16 @@ export default function App() {
             {activeStep === 8 && (
               <StepWrapper key="step8">
                 <ImageHubStep config={config} />
+              </StepWrapper>
+            )}
+            {activeStep === 9 && (
+              <StepWrapper key="step9">
+                <WikiStep />
+              </StepWrapper>
+            )}
+            {activeStep === 10 && (
+              <StepWrapper key="step10">
+                <AboutStep />
               </StepWrapper>
             )}
           </AnimatePresence>
@@ -1180,65 +1217,6 @@ function VersionComparatorStep() {
   );
 }
 
-function ImageHubStep({ config }: { config: BuildPreset }) {
-  const dummyImages = [
-    { id: 'img-1', model: '7590', os: '07.29', date: '2023-10-01', size: '28.4 MB', pkgs: 'OpenVPN, Nano, htop' },
-    { id: 'img-2', model: '7590', os: '07.50', date: '2023-11-15', size: '30.1 MB', pkgs: 'WireGuard, mc, dnsmasq' },
-    { id: 'img-3', model: '7530', os: '07.29', date: '2023-09-20', size: '25.2 MB', pkgs: 'OpenVPN' },
-    { id: 'img-4', model: '6591', os: '07.29', date: '2023-12-05', size: '32.8 MB', pkgs: 'WireGuard, Transmission' }
-  ];
-
-  const filteredImages = dummyImages.filter(img => img.model === config.model);
-
-  return (
-    <div className="h-full flex flex-col max-w-4xl">
-      <div className="flex items-center justify-between mb-6 shrink-0">
-        <h2 className="text-xl font-semibold text-zinc-100">Freetz-NG Image Hub</h2>
-        <div className="text-[10px] font-mono tracking-widest text-amber-500 uppercase">
-          Filtered for {config.model}
-        </div>
-      </div>
-
-      <div className="flex-1 overflow-y-auto pr-4">
-        <div className="space-y-4">
-          {filteredImages.length === 0 && (
-            <div className="text-center py-12 border border-dashed border-border text-zinc-500">
-              No prebuilt images found for {config.model}. Try another model or build from source.
-            </div>
-          )}
-          {filteredImages.map(img => (
-            <div key={img.id} className="bg-surface border border-border p-4 rounded-xl flex flex-col md:flex-row justify-between md:items-center gap-4 hover:border-zinc-500 transition-colors">
-              <div>
-                <div className="flex items-center gap-3 mb-1">
-                  <span className="font-semibold text-zinc-200">FritzOS {img.os}</span>
-                  <span className="bg-panel border border-border text-[10px] font-mono uppercase tracking-widest px-2 py-0.5 text-amber-500">
-                    {img.model}
-                  </span>
-                </div>
-                <div className="text-xs text-zinc-400 mb-2">Packages: {img.pkgs}</div>
-                <div className="text-[10px] font-mono tracking-widest text-zinc-500 uppercase">
-                  Built: {img.date} | Size: {img.size}
-                </div>
-              </div>
-              <div className="flex gap-3">
-                <button className="border border-border rounded-md hover:bg-white/5 text-zinc-300 px-4 py-2 text-xs uppercase font-bold tracking-wider transition-colors flex items-center gap-2">
-                  <Download className="w-4 h-4" /> Download
-                </button>
-                <button className="bg-amber-500 rounded-md hover:bg-amber-400 text-black px-4 py-2 text-xs uppercase font-bold tracking-wider transition-colors flex items-center gap-2">
-                  <Play className="w-4 h-4" /> Flash
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-      
-      <div className="mt-8 pt-4 border-t border-border flex justify-between items-center shrink-0">
-         <span className="text-xs text-zinc-500">Images are community-provided. Use at your own risk.</span>
-      </div>
-    </div>
-  );
-}
 
 function DashboardStep() {
   const [dockerStatus, setDockerStatus] = useState<any>(null);
@@ -1860,6 +1838,209 @@ function BuildQueueStep() {
             ))
           )
         )}
+      </div>
+    </div>
+  );
+}
+function WikiStep() {
+  return (
+    <div className="max-w-4xl flex flex-col h-full">
+      <div className="flex items-center justify-between mb-6 shrink-0">
+        <div>
+          <h2 className="text-xl font-semibold text-zinc-100">Wiki & Documentation</h2>
+          <p className="text-xs text-zinc-500 mt-1">Learn how Freetz-NG works internally.</p>
+        </div>
+        <a href="https://freetz-ng.github.io/freetz-ng" target="_blank" rel="noreferrer" className="text-amber-500 hover:text-amber-400 text-sm font-bold flex items-center gap-2">
+          <FileText className="w-4 h-4" /> Official Docs
+        </a>
+      </div>
+      
+      <div className="flex-1 overflow-y-auto pr-4 space-y-6">
+        <div className="bg-surface border border-border p-5 rounded-xl">
+          <h3 className="text-lg font-bold text-zinc-200 mb-3 flex items-center gap-2">
+            <Cpu className="w-5 h-5 text-amber-500" /> Architecture Overview
+          </h3>
+          <p className="text-sm text-zinc-400 leading-relaxed mb-4">
+            Freetz-NG is a modification firmware for AVM FRITZ!Box routers and other devices. It allows users to add new features, packages, and custom modifications that are not available in the stock firmware. The build system operates by downloading the original firmware, unpacking the SquashFS filesystem, injecting custom binaries and libraries, and repacking it into a flashable `.image` file.
+          </p>
+          <ul className="list-disc list-inside text-sm text-zinc-400 space-y-2">
+            <li><strong>Toolchain:</strong> Automatically compiles GCC and essential tools to cross-compile for MIPS/MIPS32 architectures.</li>
+            <li><strong>Replace Kernel:</strong> A critical feature allowing Freetz-NG to replace the stock AVM kernel with a customized version, enabling modules like WireGuard or iptables.</li>
+            <li><strong>Menuconfig:</strong> Based on the Linux kernel's configuration tool, used for selecting packages and patches.</li>
+          </ul>
+        </div>
+
+        <div className="bg-surface border border-border p-5 rounded-xl">
+          <h3 className="text-lg font-bold text-zinc-200 mb-3 flex items-center gap-2">
+            <Settings className="w-5 h-5 text-amber-500" /> Common Packages
+          </h3>
+          <p className="text-sm text-zinc-400 leading-relaxed">
+            Freetz-NG supports a wide variety of packages. For example, <strong>Dnsmasq</strong> replaces the standard DHCP/DNS server for advanced routing. <strong>OpenVPN</strong> and <strong>WireGuard</strong> allow the router to act as a secure VPN gateway. Web interfaces like <strong>Freetzmount</strong> extend USB storage capabilities significantly.
+          </p>
+        </div>
+
+        <div className="bg-surface border border-border p-5 rounded-xl">
+          <h3 className="text-lg font-bold text-zinc-200 mb-3 flex items-center gap-2">
+            <Shield className="w-5 h-5 text-amber-500" /> Flashing & Safety
+          </h3>
+          <p className="text-sm text-zinc-400 leading-relaxed">
+            Most modern FRITZ!Box models use a dual-boot (in-memory) flashing system. If a flash fails or the device bootloops, you can switch back to the secondary partition using the FTP `quote SETENV linux_fs_start` command or use AVM's official recovery tool.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AboutStep() {
+  return (
+    <div className="max-w-4xl flex flex-col h-full">
+      <div className="flex items-center justify-between mb-6 shrink-0">
+        <h2 className="text-xl font-semibold text-zinc-100">About the Developer</h2>
+      </div>
+      
+      <div className="flex-1 overflow-y-auto pr-4">
+        <div className="bg-surface border border-border p-6 rounded-xl flex items-start gap-6">
+          <div className="w-24 h-24 bg-panel border-2 border-border rounded-full flex items-center justify-center shrink-0">
+            <Terminal className="w-10 h-10 text-amber-500" />
+          </div>
+          <div>
+            <h3 className="text-2xl font-bold text-zinc-200 mb-1">gemichelst</h3>
+            <p className="text-sm text-amber-500 font-mono tracking-widest uppercase mb-4">Core Developer & Maintainer</p>
+            <p className="text-sm text-zinc-400 leading-relaxed mb-6">
+              Hi, I'm the developer behind this FREETZ-NG Builder Studio. My goal is to make compiling, configuring, and deploying Freetz-NG firmware as accessible and powerful as possible. By providing a clean, modern GUI over the traditional terminal-based build system, users can manage their router modifications efficiently.
+            </p>
+            
+            <div className="flex gap-4">
+              <a href="https://github.com/gemichelst" target="_blank" rel="noreferrer" className="flex items-center gap-2 bg-panel border border-border px-4 py-2 rounded-lg text-sm text-zinc-300 hover:text-white hover:border-amber-500 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+                GitHub Profile
+              </a>
+              <a href="https://tools.doerd.de" target="_blank" rel="noreferrer" className="flex items-center gap-2 bg-panel border border-border px-4 py-2 rounded-lg text-sm text-zinc-300 hover:text-white hover:border-amber-500 transition-colors">
+                <Globe className="w-4 h-4" />
+                tools.doerd.de
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ImageHubStep({ config }: { config: BuildPreset }) {
+  const [activeModel, setActiveModel] = useState(config.model || '7590');
+  const [filterText, setFilterText] = useState('');
+  const [externalLink, setExternalLink] = useState('');
+
+  const dummyImages = [
+    { id: 'img-1', model: '7590', os: '07.29', date: '2023-10-01', size: '28.4 MB', pkgs: 'OpenVPN, Nano, htop', uploader: 'gemichelst' },
+    { id: 'img-2', model: '7590', os: '07.50', date: '2023-11-15', size: '30.1 MB', pkgs: 'WireGuard, mc, dnsmasq', uploader: 'admin' },
+    { id: 'img-3', model: '7530', os: '07.29', date: '2023-09-20', size: '25.2 MB', pkgs: 'OpenVPN', uploader: 'user2' },
+    { id: 'img-4', model: '6591', os: '07.29', date: '2023-12-05', size: '32.8 MB', pkgs: 'WireGuard, Transmission', uploader: 'cable_guy' },
+    { id: 'img-5', model: '7490', os: '07.29', date: '2023-08-11', size: '22.1 MB', pkgs: 'Minimal, Dropbear', uploader: 'gemichelst' },
+  ];
+
+  const models = Array.from(new Set(dummyImages.map(img => img.model))).sort();
+  if (!models.includes(config.model)) models.push(config.model);
+
+  const filteredImages = dummyImages.filter(img => {
+    if (img.model !== activeModel) return false;
+    if (filterText && !img.pkgs.toLowerCase().includes(filterText.toLowerCase()) && !img.os.includes(filterText)) return false;
+    return true;
+  });
+
+  return (
+    <div className="h-full flex flex-col max-w-5xl">
+      <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 shrink-0 gap-4">
+        <div>
+          <h2 className="text-xl font-semibold text-zinc-100">Freetz-NG Image Hub</h2>
+          <p className="text-xs text-zinc-500 mt-1">Download prebuilt images or share your own.</p>
+        </div>
+        
+        <div className="flex flex-wrap gap-2">
+          {models.map(m => (
+            <button 
+              key={m}
+              onClick={() => setActiveModel(m)}
+              className={`px-3 py-1.5 rounded text-xs font-mono tracking-widest uppercase transition-colors ${activeModel === m ? 'bg-amber-500 text-black font-bold' : 'bg-surface border border-border text-zinc-400 hover:text-zinc-200'}`}
+            >
+              {m}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex gap-4 mb-6 shrink-0">
+        <div className="flex-1 relative">
+          <Search className="w-4 h-4 absolute left-3 top-2.5 text-zinc-500" />
+          <input 
+            type="text" 
+            placeholder="Filter by packages or OS version..."
+            value={filterText}
+            onChange={e => setFilterText(e.target.value)}
+            className="w-full bg-surface border border-border rounded-md pl-9 pr-4 py-2 text-sm text-zinc-200 focus:outline-none focus:border-amber-500 transition-colors"
+          />
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto pr-4 mb-6 custom-scrollbar">
+        <div className="space-y-4">
+          {filteredImages.length === 0 && (
+            <div className="text-center py-12 border border-dashed border-border rounded-xl text-zinc-500 text-sm">
+              No prebuilt images found for {activeModel} matching your filters.
+            </div>
+          )}
+          {filteredImages.map(img => (
+            <div key={img.id} className="bg-surface border border-border p-4 rounded-xl flex flex-col md:flex-row justify-between md:items-center gap-4 hover:border-zinc-500 transition-colors">
+              <div>
+                <div className="flex items-center gap-3 mb-1">
+                  <span className="font-semibold text-zinc-200">FritzOS {img.os}</span>
+                  <span className="bg-panel border border-border rounded text-[10px] font-mono uppercase tracking-widest px-2 py-0.5 text-amber-500">
+                    {img.model}
+                  </span>
+                  <span className="text-[10px] text-zinc-500 uppercase tracking-widest">by {img.uploader}</span>
+                </div>
+                <div className="text-xs text-zinc-400 mb-2">Packages: {img.pkgs}</div>
+                <div className="text-[10px] font-mono tracking-widest text-zinc-500 uppercase">
+                  Built: {img.date} | Size: {img.size}
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <button className="border border-border rounded-md hover:bg-white/5 text-zinc-300 px-4 py-2 text-xs uppercase font-bold tracking-wider transition-colors flex items-center gap-2">
+                  <Download className="w-4 h-4" /> Download
+                </button>
+                <button className="bg-amber-500 rounded-md hover:bg-amber-400 text-black px-4 py-2 text-xs uppercase font-bold tracking-wider transition-colors flex items-center gap-2">
+                  <Play className="w-4 h-4" /> Flash
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+      
+      <div className="shrink-0 bg-surface border border-border p-5 rounded-xl">
+        <h3 className="text-sm font-bold text-zinc-200 mb-3 flex items-center gap-2">
+          <Globe className="w-4 h-4 text-amber-500" /> Share External Image
+        </h3>
+        <p className="text-xs text-zinc-400 mb-4">
+          Upload your compiled .image file to a fileshare service (e.g. Mega, Google Drive) and share the URL here for other users.
+        </p>
+        <div className="flex gap-3">
+          <input 
+            type="url" 
+            placeholder="https://..."
+            value={externalLink}
+            onChange={e => setExternalLink(e.target.value)}
+            className="flex-1 bg-background border border-border rounded-md px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:border-amber-500 transition-colors"
+          />
+          <button 
+            disabled={!externalLink}
+            className="bg-zinc-800 border border-zinc-600 rounded-md hover:bg-zinc-700 disabled:opacity-50 text-white px-6 py-2 text-xs uppercase font-bold tracking-wider transition-colors"
+          >
+            Submit Link
+          </button>
+        </div>
       </div>
     </div>
   );

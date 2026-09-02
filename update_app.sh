@@ -1,0 +1,1 @@
+sed -i 's/export default function App() {/export default function App() {\n  const [theme, setTheme] = useState<string>("dark");\n  useEffect(() => {\n    document.body.setAttribute("data-theme", theme);\n  }, [theme]);\n/' src/App.tsx
