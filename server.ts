@@ -26,41 +26,73 @@ async function startServer() {
     res.json(preset);
   });
 
+  app.get("/api/docker-status", (req, res) => {
+    res.json({
+      running: true,
+      activeContainers: 1,
+      version: "24.0.5",
+      memoryUsage: "45%"
+    });
+  });
+
+  app.get("/api/build-health", (req, res) => {
+    res.json([
+      { date: 'Mon', success: 4, failed: 1 },
+      { date: 'Tue', success: 6, failed: 0 },
+      { date: 'Wed', success: 5, failed: 2 },
+      { date: 'Thu', success: 8, failed: 1 },
+      { date: 'Fri', success: 7, failed: 0 },
+      { date: 'Sat', success: 3, failed: 0 },
+      { date: 'Sun', success: 9, failed: 1 },
+    ]);
+  });
+
   app.post("/api/generate-script", (req, res) => {
     const config = req.body;
     
     let script = `#!/bin/bash\n\n`;
     script += `# Freetz-NG Builder Script\n`;
-    script += `# Generated for ${config.model || 'Unknown Model'} (FritzOS ${config.osVersion || 'Unknown'})\n\n`;
+    script += `# Generated for ${config.model || 'Unknown Model'} (FritzOS ${config.osVersion || 'Unknown'})\n`;
+    script += `# Build Method: ${config.buildMethod || 'direct'}\n\n`;
     
     script += `set -e\n\n`;
     
     script += `echo "Setting up Freetz-NG environment..."\n`;
-    script += `rm -rf freetz/packages/freetz-ng\n`;
-    script += `mkdir -p freetz/packages/freetz-ng\n`;
-    script += `umask 0022 freetz/packages/freetz-ng\n\n`;
-    
-    script += `rm -rf freetz/packages/i-matik\n`;
-    script += `mkdir -p freetz/packages/i-matik\n`;
-    script += `umask 0022 freetz/packages/i-matik\n\n`;
-    
-    script += `echo "Cloning Freetz-NG..."\n`;
-    script += `git clone https://github.com/Freetz-NG/freetz-ng.git freetz/packages/freetz-ng\n`;
-    script += `cd freetz/packages/freetz-ng\n\n`;
-    
-    script += `echo "Building prerequisites..."\n`;
-    script += `make tools/prerequisites install\n`;
-    script += `make tools\n\n`;
-    
-    script += `echo "Configuring build for ${config.model}..."\n`;
-    script += `make menuconfig\n\n`;
-    
-    script += `echo "Compiling firmware..."\n`;
-    script += `make\n\n`;
-    
-    if (config.autoFlash && config.ipAddress) {
-      script += `echo "Flashing router at ${config.ipAddress}..."\n`;
-      script += `./tools/push_firmware images/*.image ${config.ipAddress}\n`;
+
+    if (config.buildMethod === 'docker') {
+      script += `echo "Deploying Docker container..."\n`;
+      script += `chmod +x freetz/packages/scripts/install-as-docker.sh\n`;
+      script += `./freetz/packages/scripts/install-as-docker.sh\n\n`;
+      script += `rm -rf freetz/packages/i-matik\n`;
+      script += `mkdir -p freetz/packages/i-matik\n`;
+      script += `umask 0022 freetz/packages/i-matik\n\n`;
+    } else {
+      script += `rm -rf freetz/packages/freetz-ng\n`;
+      script += `mkdir -p freetz/packages/freetz-ng\n`;
+      script += `umask 0022 freetz/packages/freetz-ng\n\n`;
+      
+      script += `rm -rf freetz/packages/i-matik\n`;
+      script += `mkdir -p freetz/packages/i-matik\n`;
+      script += `umask 0022 freetz/packages/i-matik\n\n`;
+      
+      script += `echo "Cloning Freetz-NG..."\n`;
+      script += `git clone https://github.com/Freetz-NG/freetz-ng.git freetz/packages/freetz-ng\n`;
+      script += `cd freetz/packages/freetz-ng\n\n`;
+      
+      script += `echo "Building prerequisites..."\n`;
+      script += `make tools/prerequisites install\n`;
+      script += `make tools\n\n`;
+      
+      script += `echo "Configuring build for ${config.model}..."\n`;
+      script += `make menuconfig\n\n`;
+      
+      script += `echo "Compiling firmware..."\n`;
+      script += `make\n\n`;
+      
+      if (config.autoFlash && config.ipAddress) {
+        script += `echo "Flashing router at ${config.ipAddress}..."\n`;
+        script += `./tools/push_firmware images/*.image ${config.ipAddress}\n`;
+      }
     }
     
     script += `echo "Build and setup complete!"\n`;

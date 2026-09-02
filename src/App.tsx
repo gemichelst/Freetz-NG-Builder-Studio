@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { Terminal, Save, Download, Cpu, HardDrive, Wifi, Shield, Play, Settings } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Terminal, Save, Download, Cpu, HardDrive, Wifi, Shield, Play, Settings, AlertTriangle, CheckCircle2, Activity, Server, FileText } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
 export type BuildPreset = {
   id?: string;
@@ -11,10 +12,11 @@ export type BuildPreset = {
   ipAddress: string;
   autoFlash: boolean;
   packages: string[];
+  buildMethod: 'direct' | 'docker';
 };
 
 export default function App() {
-  const [activeStep, setActiveStep] = useState(1);
+  const [activeStep, setActiveStep] = useState(0); // Start at Dashboard
   
   const [config, setConfig] = useState<BuildPreset>({
     name: '',
@@ -23,7 +25,8 @@ export default function App() {
     osVersion: '07.29',
     ipAddress: '192.168.178.1',
     autoFlash: false,
-    packages: []
+    packages: [],
+    buildMethod: 'direct'
   });
   
   const handleConfigChange = (key: keyof BuildPreset, value: any) => {
@@ -56,7 +59,8 @@ export default function App() {
         {/* Sidebar Nav */}
         <aside className="w-64 bg-surface border-r border-border shrink-0 flex flex-col">
           <nav className="flex-1 p-4 space-y-2">
-            <StepLink step={1} current={activeStep} onClick={() => setActiveStep(1)} label="Hardware Config" icon={<Cpu className="w-4 h-4" />} />
+            <StepLink step={0} current={activeStep} onClick={() => setActiveStep(0)} label="Dashboard" icon={<Cpu className="w-4 h-4" />} />
+            <StepLink step={1} current={activeStep} onClick={() => setActiveStep(1)} label="Hardware Config" icon={<Settings className="w-4 h-4" />} />
             <StepLink step={2} current={activeStep} onClick={() => setActiveStep(2)} label="Packages" icon={<HardDrive className="w-4 h-4" />} />
             <StepLink step={3} current={activeStep} onClick={() => setActiveStep(3)} label="Execution" icon={<Play className="w-4 h-4" />} />
             <StepLink step={4} current={activeStep} onClick={() => setActiveStep(4)} label="Image Hub" icon={<Download className="w-4 h-4" />} />
@@ -69,6 +73,11 @@ export default function App() {
         {/* Main Content Area */}
         <main className="flex-1 relative overflow-y-auto">
           <AnimatePresence mode="wait">
+            {activeStep === 0 && (
+              <StepWrapper key="step0">
+                <DashboardStep />
+              </StepWrapper>
+            )}
             {activeStep === 1 && (
               <StepWrapper key="step1">
                 <ConfigStep config={config} onChange={handleConfigChange} onNext={() => setActiveStep(2)} />
@@ -160,12 +169,23 @@ function ConfigStep({ config, onChange, onNext }: { config: BuildPreset, onChang
             className="w-full bg-surface border border-border rounded-md px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:border-amber-500 transition-colors"
           />
         </div>
-        <div className="space-y-2 flex flex-col justify-end">
+        <div className="space-y-2">
+          <label className="text-[10px] uppercase tracking-widest text-zinc-500">Build Method</label>
+          <select 
+            value={config.buildMethod} 
+            onChange={e => onChange('buildMethod', e.target.value)}
+            className="w-full bg-surface border border-border rounded-md px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:border-amber-500 transition-colors"
+          >
+            <option value="direct">Direct Build (Host)</option>
+            <option value="docker">Docker Container</option>
+          </select>
+        </div>
+        <div className="space-y-2 col-span-2">
           <label className="flex items-center gap-3 cursor-pointer group">
-            <div className={`w-4 h-4 border flex items-center justify-center transition-colors ${config.autoFlash ? 'bg-amber-500 border-amber-500' : 'border-border group-hover:border-zinc-500'}`}>
+            <div className={`w-4 h-4 border rounded-sm flex items-center justify-center transition-colors ${config.autoFlash ? 'bg-amber-500 border-amber-500' : 'border-border group-hover:border-zinc-500'}`}>
               {config.autoFlash && <CheckIcon />}
             </div>
-            <span className="text-sm font-medium">Auto-flash firmware via LAN</span>
+            <span className="text-sm font-medium text-zinc-200">Auto-flash firmware via LAN upon completion</span>
           </label>
         </div>
       </div>
@@ -261,6 +281,7 @@ function ExecutionStep({ config }: { config: BuildPreset }) {
   const [isRunning, setIsRunning] = useState(false);
   const [logs, setLogs] = useState<string[]>([]);
   const [progress, setProgress] = useState(0);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const generateScript = async () => {
     try {
@@ -299,8 +320,28 @@ function ExecutionStep({ config }: { config: BuildPreset }) {
     };
   };
 
+  const exportLogs = () => {
+    if (logs.length === 0) return;
+    const blob = new Blob([logs.join('\\n')], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `build-logs-${config.model}-${new Date().toISOString().slice(0,10)}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col relative">
+      <ConfirmModal 
+        isOpen={showConfirm}
+        onClose={() => setShowConfirm(false)}
+        onConfirm={startBuild}
+        title="Initiate Build Process"
+        message="Are you sure you want to execute the build scripts on your host environment? This will download packages, run compilations, and potentially flash your hardware."
+        confirmText="Start Build"
+      />
+      
       <div className="flex items-center justify-between mb-6 shrink-0">
         <h2 className="text-xl font-semibold text-zinc-100">Build Execution</h2>
         <div className="flex gap-3">
@@ -308,9 +349,9 @@ function ExecutionStep({ config }: { config: BuildPreset }) {
             Generate Script
           </button>
           <button 
-            onClick={startBuild} 
+            onClick={() => setShowConfirm(true)} 
             disabled={isRunning}
-            className="bg-amber-500 hover:bg-amber-400 disabled:opacity-50 disabled:cursor-not-allowed text-black px-6 py-1.5 text-xs uppercase font-bold tracking-wider transition-colors flex items-center gap-2"
+            className="bg-amber-500 rounded-md hover:bg-amber-400 disabled:opacity-50 disabled:cursor-not-allowed text-black px-6 py-1.5 text-xs uppercase font-bold tracking-wider transition-colors flex items-center gap-2"
           >
             {isRunning ? 'Building...' : 'Start Build'}
             <Play className="w-3 h-3" />
@@ -341,7 +382,17 @@ function ExecutionStep({ config }: { config: BuildPreset }) {
               <div className="w-2.5 h-2.5 rounded-full bg-amber-500/50"></div>
               <div className="w-2.5 h-2.5 rounded-full bg-green-500/50"></div>
             </div>
-            <span className="text-[10px] font-mono text-zinc-500 uppercase">terminal session: build-tools</span>
+            <div className="flex items-center gap-4">
+              <span className="text-[10px] font-mono text-zinc-500 uppercase">terminal session: build-tools</span>
+              <button 
+                onClick={exportLogs} 
+                disabled={logs.length === 0}
+                className="text-zinc-400 hover:text-amber-500 disabled:opacity-50 transition-colors flex items-center gap-1"
+                title="Export Logs"
+              >
+                <FileText className="w-3 h-3" />
+              </button>
+            </div>
           </div>
           
           <div className="p-6 overflow-y-auto flex-1 font-mono text-xs text-zinc-300 space-y-1.5">
@@ -520,6 +571,124 @@ function ImageHubStep({ config }: { config: BuildPreset }) {
       <div className="mt-8 pt-4 border-t border-border flex justify-between items-center shrink-0">
          <span className="text-xs text-zinc-500">Images are community-provided. Use at your own risk.</span>
       </div>
+    </div>
+  );
+}
+
+function DashboardStep() {
+  const [dockerStatus, setDockerStatus] = useState<any>(null);
+  const [buildHealth, setBuildHealth] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetch('/api/docker-status').then(r => r.json()).then(setDockerStatus).catch(() => {});
+    fetch('/api/build-health').then(r => r.json()).then(setBuildHealth).catch(() => {});
+  }, []);
+
+  return (
+    <div className="max-w-5xl">
+      <h2 className="text-xl font-semibold text-zinc-100 mb-6">System Dashboard</h2>
+      
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="bg-surface border border-border p-5 rounded-xl flex items-center gap-4">
+          <div className="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-500">
+            <Server className="w-6 h-6" />
+          </div>
+          <div>
+            <p className="text-[10px] text-zinc-500 uppercase tracking-widest">Docker Daemon</p>
+            <p className="text-lg font-bold text-zinc-100">
+              {dockerStatus ? (dockerStatus.running ? 'RUNNING' : 'STOPPED') : 'LOADING...'}
+            </p>
+            {dockerStatus && dockerStatus.running && (
+              <p className="text-xs text-zinc-400 mt-1">{dockerStatus.activeContainers} Containers • v{dockerStatus.version}</p>
+            )}
+          </div>
+        </div>
+
+        <div className="bg-surface border border-border p-5 rounded-xl flex items-center gap-4">
+          <div className="w-12 h-12 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-500">
+            <Activity className="w-6 h-6" />
+          </div>
+          <div>
+            <p className="text-[10px] text-zinc-500 uppercase tracking-widest">System Load</p>
+            <p className="text-lg font-bold text-zinc-100">
+              {dockerStatus ? dockerStatus.memoryUsage : 'LOADING...'}
+            </p>
+            <p className="text-xs text-zinc-400 mt-1">Memory Allocation</p>
+          </div>
+        </div>
+
+        <div className="bg-surface border border-border p-5 rounded-xl flex items-center gap-4">
+          <div className="w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center text-green-500">
+            <CheckCircle2 className="w-6 h-6" />
+          </div>
+          <div>
+            <p className="text-[10px] text-zinc-500 uppercase tracking-widest">Environment</p>
+            <p className="text-lg font-bold text-zinc-100">READY</p>
+            <p className="text-xs text-zinc-400 mt-1">Debian Build Host</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-surface border border-border rounded-xl p-5 shadow-sm">
+        <h3 className="text-sm font-semibold uppercase tracking-wider text-zinc-300 mb-6">Build Health (7 Days)</h3>
+        <div className="h-64 w-full">
+          {buildHealth.length > 0 ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={buildHealth} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="colorSuccess" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                  </linearGradient>
+                  <linearGradient id="colorFailed" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#ef4444" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <XAxis dataKey="date" stroke="#52525b" fontSize={12} tickLine={false} axisLine={false} />
+                <YAxis stroke="#52525b" fontSize={12} tickLine={false} axisLine={false} />
+                <Tooltip 
+                  contentStyle={{ backgroundColor: '#111114', borderColor: '#27272a', borderRadius: '8px' }}
+                  itemStyle={{ fontSize: '12px' }}
+                />
+                <Area type="monotone" dataKey="success" stroke="#10b981" fillOpacity={1} fill="url(#colorSuccess)" name="Successful Builds" />
+                <Area type="monotone" dataKey="failed" stroke="#ef4444" fillOpacity={1} fill="url(#colorFailed)" name="Failed Builds" />
+              </AreaChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-zinc-500">Loading chart data...</div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ConfirmModal({ isOpen, onClose, onConfirm, title, message, confirmText }: { isOpen: boolean, onClose: () => void, onConfirm: () => void, title: string, message: string, confirmText: string }) {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="bg-surface border border-border rounded-xl shadow-2xl max-w-md w-full overflow-hidden"
+      >
+        <div className="p-6">
+          <div className="flex items-center gap-3 text-amber-500 mb-4">
+            <AlertTriangle className="w-6 h-6" />
+            <h3 className="text-lg font-bold text-zinc-100">{title}</h3>
+          </div>
+          <p className="text-sm text-zinc-300">{message}</p>
+        </div>
+        <div className="px-6 py-4 bg-[#111114] border-t border-border flex justify-end gap-3">
+          <button onClick={onClose} className="px-4 py-2 text-xs font-semibold text-zinc-400 hover:text-zinc-200 transition-colors">
+            Cancel
+          </button>
+          <button onClick={() => { onConfirm(); onClose(); }} className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold uppercase tracking-wider rounded-md transition-colors">
+            {confirmText}
+          </button>
+        </div>
+      </motion.div>
     </div>
   );
 }

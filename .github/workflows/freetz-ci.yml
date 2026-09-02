@@ -1,0 +1,51 @@
+name: Freetz-NG Build Pipeline
+
+on:
+  schedule:
+    - cron: '0 2 * * *' # Run daily at 2am
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      build_method:
+        description: 'Build Method'
+        required: true
+        default: 'direct'
+        type: choice
+        options:
+        - direct
+        - docker
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Builder
+        uses: actions/checkout@v4
+        with:
+          repository: gemichelst/Freetz-NG-Builder
+          
+      - name: Setup System Dependencies
+        if: ${{ github.event.inputs.build_method == 'direct' || github.event_name != 'workflow_dispatch' }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential subversion git libncurses5-dev zlib1g-dev gawk flex gettext wget unzip python3
+          
+      - name: Run Build (Direct)
+        if: ${{ github.event.inputs.build_method == 'direct' || github.event_name != 'workflow_dispatch' }}
+        run: |
+          chmod +x freetz/packages/scripts/install-freetz.sh
+          ./freetz/packages/scripts/install-freetz.sh
+          
+      - name: Run Build (Docker)
+        if: ${{ github.event.inputs.build_method == 'docker' }}
+        run: |
+          chmod +x freetz/packages/scripts/install-as-docker.sh
+          ./freetz/packages/scripts/install-as-docker.sh
+          
+      - name: Upload Firmware Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: freetz-firmware-images
+          path: freetz/packages/freetz-ng/images/*.image
+          retention-days: 7
