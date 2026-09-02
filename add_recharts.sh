@@ -1,0 +1,1 @@
+sed -i 's/import { AnimatePresence, motion }/import { AnimatePresence, motion } from "motion\/react";\nimport { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";/' src/App.tsx
