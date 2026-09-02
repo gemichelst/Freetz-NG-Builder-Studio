@@ -12,6 +12,7 @@ export type BuildPreset = {
   ipAddress: string;
   autoFlash: boolean;
   packages: string[];
+  externalTarget: boolean;
   buildMethod: 'direct' | 'docker';
 };
 
@@ -26,6 +27,7 @@ export default function App() {
     ipAddress: '192.168.178.1',
     autoFlash: false,
     packages: [],
+    externalTarget: false,
     buildMethod: 'direct'
   });
   
@@ -258,60 +260,140 @@ function ConfigStep({ config, onChange, onNext }: { config: BuildPreset, onChang
   );
 }
 
+const PACKAGES_DB = [
+  { cat: 'Patches', icon: <Layers className="w-4 h-4" />, items: [
+    { id: 'Remove brandings', req: [], conf: [] },
+    { id: 'Replace kernel', req: [], conf: [] },
+    { id: 'Freetzmount', req: [], conf: [] },
+    { id: 'Maxdev', req: [], conf: [] }
+  ]},
+  { cat: 'Themes', icon: <Play className="w-4 h-4" />, items: [
+    { id: 'Cuma', req: [], conf: [] },
+    { id: 'Legacy', req: [], conf: [] },
+    { id: 'Newfreetz', req: [], conf: [] },
+    { id: 'Phoenix', req: [], conf: [] }
+  ]},
+  { cat: 'Network', icon: <Wifi className="w-4 h-4" />, items: [
+    { id: 'Dnsmasq', req: [], conf: ['dnsd'] },
+    { id: 'dnsd', req: [], conf: ['Dnsmasq'] },
+    { id: 'Downloader', req: [], conf: [] },
+    { id: 'Mosquitto', req: ['libssl', 'libcrypto'], conf: [] },
+    { id: 'NFS-Server', req: [], conf: [] },
+    { id: 'Wake-on-LAN', req: [], conf: [] },
+    { id: 'OpenVPN', req: ['libssl', 'liblzo2'], conf: [] },
+    { id: 'WireGuard', req: ['Replace kernel'], conf: [] }
+  ]},
+  { cat: 'System', icon: <Settings className="w-4 h-4" />, items: [
+    { id: 'Dropbear', req: [], conf: [] },
+    { id: 'Inetd', req: [], conf: [] },
+    { id: 'Syslogd', req: [], conf: [] },
+    { id: 'Swap', req: [], conf: [] },
+    { id: 'cronD', req: [], conf: [] },
+    { id: 'onlinechanged', req: [], conf: [] },
+    { id: 'Screen', req: [], conf: [] },
+    { id: 'SSH authorized-keys', req: [], conf: [] },
+    { id: 'Addhole', req: [], conf: [] }
+  ]},
+  { cat: 'Misc / Tools', icon: <Terminal className="w-4 h-4" />, items: [
+    { id: 'LCD4linux', req: [], conf: [] },
+    { id: 'tcpdump', req: [], conf: [] },
+    { id: 'strace', req: [], conf: [] },
+    { id: 'nano', req: [], conf: [] },
+    { id: 'htop', req: [], conf: [] },
+    { id: 'mc', req: [], conf: [] }
+  ]},
+  { cat: 'Libraries', icon: <Archive className="w-4 h-4" />, items: [
+    { id: 'libcrypto', req: [], conf: [] },
+    { id: 'libssl', req: [], conf: [] },
+    { id: 'liblzo2', req: [], conf: [] },
+    { id: 'zlib', req: [], conf: [] }
+  ]}
+];
+
 function PackagesStep({ config, onChange, onNext }: { config: BuildPreset, onChange: (k: keyof BuildPreset, v: any) => void, onNext: () => void }) {
-  const togglePackage = (pkg: string) => {
-    if (config.packages.includes(pkg)) {
-      onChange('packages', config.packages.filter(p => p !== pkg));
+  const [alertMsg, setAlertMsg] = useState<{ type: 'error' | 'info', text: string } | null>(null);
+
+  const flatDb = PACKAGES_DB.flatMap(c => c.items);
+  const allIds = flatDb.map(i => i.id);
+
+  const togglePackage = (pkgId: string) => {
+    const isSelected = config.packages.includes(pkgId);
+    let newPkgs = [...config.packages];
+
+    const pkgNode = flatDb.find(p => p.id === pkgId);
+    if (!pkgNode) return;
+
+    if (isSelected) {
+      newPkgs = newPkgs.filter(p => p !== pkgId);
+      setAlertMsg(null);
     } else {
-      onChange('packages', [...config.packages, pkg]);
+      // Check conflicts
+      const conflict = pkgNode.conf.find(c => config.packages.includes(c));
+      if (conflict) {
+        setAlertMsg({ type: 'error', text: `Cannot select ${pkgId}. It conflicts with ${conflict}.` });
+        setTimeout(() => setAlertMsg(null), 3000);
+        return;
+      }
+      
+      newPkgs.push(pkgId);
+
+      // Auto-resolve dependencies
+      const addedDeps: string[] = [];
+      pkgNode.req.forEach(reqPkg => {
+        if (!newPkgs.includes(reqPkg)) {
+          newPkgs.push(reqPkg);
+          addedDeps.push(reqPkg);
+        }
+      });
+      
+      if (addedDeps.length > 0) {
+        setAlertMsg({ type: 'info', text: `Auto-selected dependencies for ${pkgId}: ${addedDeps.join(', ')}` });
+        setTimeout(() => setAlertMsg(null), 3000);
+      } else {
+        setAlertMsg(null);
+      }
+    }
+    onChange('packages', newPkgs);
+  };
+
+  const handleExternalToggle = () => {
+    const nextExt = !config.externalTarget;
+    onChange('externalTarget', nextExt);
+    if (nextExt && !config.packages.includes('Freetzmount')) {
+      onChange('packages', [...config.packages, 'Freetzmount']);
+      setAlertMsg({ type: 'info', text: 'Auto-selected Freetzmount patch required for .external (uStor) offloading.' });
+      setTimeout(() => setAlertMsg(null), 3000);
     }
   };
 
-  const categories = [
-    {
-      title: 'Security',
-      icon: <Shield className="w-4 h-4" />,
-      items: ['OpenVPN', 'WireGuard', 'Dropbear (SSH)', 'iptables', 'stunnel']
-    },
-    {
-      title: 'Network',
-      icon: <Wifi className="w-4 h-4" />,
-      items: ['dnsmasq', 'curl', 'wget', 'tcpdump', 'nmap']
-    },
-    {
-      title: 'System',
-      icon: <Settings className="w-4 h-4" />,
-      items: ['htop', 'mc (Midnight Commander)', 'nano', 'cron', 'syslogd']
-    },
-    {
-      title: 'Media',
-      icon: <Play className="w-4 h-4" />,
-      items: ['minidlna', 'samba', 'transmission', 'vsftpd']
-    }
-  ];
-
-  const allPackages = categories.flatMap(c => c.items);
-
-  const toggleCategory = (items: string[]) => {
-    const allSelected = items.every(item => config.packages.includes(item));
+  const toggleCategory = (items: {id: string}[]) => {
+    const itemIds = items.map(i => i.id);
+    const allSelected = itemIds.every(item => config.packages.includes(item));
     if (allSelected) {
-      onChange('packages', config.packages.filter(p => !items.includes(p)));
+      onChange('packages', config.packages.filter(p => !itemIds.includes(p)));
     } else {
-      const newPkgs = [...config.packages];
-      items.forEach(item => {
-        if (!newPkgs.includes(item)) newPkgs.push(item);
+      let newPkgs = [...config.packages];
+      itemIds.forEach(item => {
+        if (!newPkgs.includes(item)) newPkgs.push(item); // Simple selection, no deep auto-resolve on category select to avoid mass chaos
       });
       onChange('packages', newPkgs);
     }
   };
 
   return (
-    <div className="max-w-4xl flex flex-col h-full">
-      <div className="flex items-center justify-between mb-6 shrink-0">
-        <h2 className="text-xl font-semibold text-zinc-100">Package Selection</h2>
-        <div className="flex gap-2">
+    <div className="max-w-6xl flex flex-col h-full relative">
+      <div className="flex items-center justify-between mb-4 shrink-0">
+        <h2 className="text-xl font-semibold text-zinc-100">Package & Patch Selection</h2>
+        <div className="flex gap-4 items-center">
+          <label className="flex items-center gap-2 cursor-pointer bg-surface border border-border px-3 py-1.5 rounded-md hover:border-amber-500/50 transition-colors">
+            <div className={`w-4 h-4 border flex items-center justify-center shrink-0 transition-colors ${config.externalTarget ? 'bg-amber-500 border-amber-500' : 'border-zinc-600'}`}>
+              {config.externalTarget && <CheckIcon />}
+            </div>
+            <span className="text-xs font-bold text-zinc-200">Enable .external (uStor)</span>
+          </label>
+          <div className="w-px h-6 bg-border mx-2"></div>
           <button 
-            onClick={() => onChange('packages', allPackages)}
+            onClick={() => onChange('packages', allIds)}
             className="flex items-center gap-1.5 px-3 py-1.5 border border-border rounded-md hover:bg-white/5 text-xs text-zinc-300 font-medium transition-colors"
           >
             <ListChecks className="w-3 h-3" /> Select All
@@ -325,45 +407,75 @@ function PackagesStep({ config, onChange, onNext }: { config: BuildPreset, onCha
         </div>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 overflow-y-auto">
-        {categories.map(cat => {
-          const catSelectedCount = cat.items.filter(item => config.packages.includes(item)).length;
+      {/* Alert Banner */}
+      <AnimatePresence>
+        {alertMsg && (
+          <motion.div 
+            initial={{ opacity: 0, y: -10 }} 
+            animate={{ opacity: 1, y: 0 }} 
+            exit={{ opacity: 0 }}
+            className={`absolute top-16 left-0 right-0 z-10 px-4 py-2 rounded-md text-xs font-bold shadow-lg flex items-center gap-2 ${alertMsg.type === 'error' ? 'bg-red-500/20 text-red-500 border border-red-500/30' : 'bg-blue-500/20 text-blue-400 border border-blue-500/30'}`}
+          >
+            <AlertTriangle className="w-4 h-4" />
+            {alertMsg.text}
+          </motion.div>
+        )}
+      </AnimatePresence>
+      
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 overflow-y-auto pr-2 pb-8 mt-2">
+        {PACKAGES_DB.map(cat => {
+          const catSelectedCount = cat.items.filter(item => config.packages.includes(item.id)).length;
           const isAllSelected = catSelectedCount === cat.items.length;
           
           return (
-          <div key={cat.title} className="bg-surface border border-border p-5 rounded-xl">
-            <div className="flex items-center justify-between text-amber-500 mb-4 border-b border-border pb-2">
-              <div className="flex items-center gap-2">
-                {cat.icon}
-                <h3 className="text-xs uppercase tracking-wider font-semibold">{cat.title}</h3>
+            <div key={cat.cat} className="bg-surface border border-border p-4 rounded-xl flex flex-col max-h-80">
+              <div className="flex items-center justify-between text-amber-500 mb-3 border-b border-border pb-2 shrink-0">
+                <div className="flex items-center gap-2">
+                  {cat.icon}
+                  <h3 className="text-[10px] uppercase tracking-widest font-bold text-zinc-300">{cat.cat}</h3>
+                </div>
+                <button 
+                  onClick={() => toggleCategory(cat.items)}
+                  className="text-[10px] text-zinc-500 hover:text-amber-500 uppercase tracking-widest font-mono transition-colors"
+                >
+                  {isAllSelected ? 'Deselect' : 'Select'}
+                </button>
               </div>
-              <button 
-                onClick={() => toggleCategory(cat.items)}
-                className="text-[10px] text-zinc-500 hover:text-amber-500 uppercase tracking-widest font-mono transition-colors"
-              >
-                {isAllSelected ? 'Deselect' : 'Select'}
-              </button>
-            </div>
-            <div className="space-y-3">
-              {cat.items.map(pkg => (
-                <label key={pkg} className="flex items-center gap-3 cursor-pointer group">
-                  <div className={`w-4 h-4 border flex items-center justify-center shrink-0 transition-colors ${config.packages.includes(pkg) ? 'bg-amber-500 border-amber-500' : 'border-border group-hover:border-zinc-500'}`}>
-                    {config.packages.includes(pkg) && <CheckIcon />}
+              <div className="space-y-1 overflow-y-auto flex-1 pr-2 custom-scrollbar">
+                {cat.items.map(pkg => (
+                  <div key={pkg.id} className="flex items-center justify-between py-1 hover:bg-white/5 px-2 -mx-2 rounded-md transition-colors cursor-pointer" onClick={() => togglePackage(pkg.id)}>
+                    <label className="flex items-center gap-3 cursor-pointer group pointer-events-none">
+                      <div className={`w-3.5 h-3.5 border rounded-sm flex items-center justify-center shrink-0 transition-colors ${config.packages.includes(pkg.id) ? 'bg-amber-500 border-amber-500' : 'border-zinc-600 group-hover:border-zinc-400'}`}>
+                        {config.packages.includes(pkg.id) && <CheckIcon />}
+                      </div>
+                      <span className={`text-sm transition-colors ${config.packages.includes(pkg.id) ? 'text-zinc-100 font-medium' : 'text-zinc-400'}`}>{pkg.id}</span>
+                    </label>
+                    {(pkg.req.length > 0 || pkg.conf.length > 0) && (
+                      <div className="flex gap-1">
+                        {pkg.req.length > 0 && <span className="text-[8px] uppercase tracking-widest bg-blue-500/10 text-blue-500 px-1 py-0.5 rounded" title={`Requires: ${pkg.req.join(', ')}`}>REQ</span>}
+                        {pkg.conf.length > 0 && <span className="text-[8px] uppercase tracking-widest bg-red-500/10 text-red-500 px-1 py-0.5 rounded" title={`Conflicts: ${pkg.conf.join(', ')}`}>CONF</span>}
+                      </div>
+                    )}
                   </div>
-                  <span className="text-sm text-zinc-300 group-hover:text-zinc-100 transition-colors">{pkg}</span>
-                </label>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
           );
         })}
       </div>
 
-      <div className="mt-auto flex justify-between shrink-0">
-        <div className="text-[10px] uppercase font-mono tracking-widest text-zinc-500 self-center">
-          Selected: {config.packages.length} packages
+      <div className="mt-auto flex justify-between shrink-0 pt-4 border-t border-border">
+        <div className="flex flex-col">
+          <div className="text-[10px] uppercase font-bold tracking-widest text-zinc-500">
+            Selected: <span className="text-amber-500 text-sm">{config.packages.length}</span> items
+          </div>
+          {config.externalTarget && (
+            <div className="text-xs text-blue-400 mt-1 flex items-center gap-1 font-medium">
+              <HardDrive className="w-3 h-3" /> External uStor mode active
+            </div>
+          )}
         </div>
-        <button onClick={onNext} className="bg-amber-500 rounded-md hover:bg-amber-400 text-black px-6 py-2 text-xs uppercase font-bold tracking-wider transition-colors">
+        <button onClick={onNext} className="bg-amber-500 rounded-md hover:bg-amber-400 text-black px-6 py-2 text-xs uppercase font-bold tracking-wider transition-colors shadow-lg shadow-amber-500/20">
           Next: Execution
         </button>
       </div>
