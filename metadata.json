@@ -1,0 +1,8 @@
+{
+  "name": "Freetz-NG Builder Studio",
+  "description": "A webapp for generating scripts, sources and files for freetz-ng, complete with build simulation and preset management.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
