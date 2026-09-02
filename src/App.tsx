@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Terminal, Save, Download, Cpu, HardDrive, Wifi, Shield, Play, Settings, AlertTriangle, CheckCircle2, Activity, Server, FileText, Calendar, GitCompare, ListChecks, Layers, Search, Zap, History, Bell } from 'lucide-react';
+import { Terminal, Save, Download, Cpu, HardDrive, Wifi, Shield, Play, Settings, AlertTriangle, CheckCircle2, Activity, Server, FileText, Calendar, GitCompare, ListChecks, Layers, Search, Zap, History, Bell, ListOrdered, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
@@ -63,10 +63,11 @@ export default function App() {
             <StepLink step={1} current={activeStep} onClick={() => setActiveStep(1)} label="Hardware Config" icon={<Settings className="w-4 h-4" />} />
             <StepLink step={2} current={activeStep} onClick={() => setActiveStep(2)} label="Packages" icon={<HardDrive className="w-4 h-4" />} />
             <StepLink step={3} current={activeStep} onClick={() => setActiveStep(3)} label="Execution" icon={<Play className="w-4 h-4" />} />
-            <StepLink step={4} current={activeStep} onClick={() => setActiveStep(4)} label="Quick Flash" icon={<Zap className="w-4 h-4" />} />
-            <StepLink step={5} current={activeStep} onClick={() => setActiveStep(5)} label="Logs History" icon={<History className="w-4 h-4" />} />
-            <StepLink step={6} current={activeStep} onClick={() => setActiveStep(6)} label="Version Compare" icon={<GitCompare className="w-4 h-4" />} />
-            <StepLink step={7} current={activeStep} onClick={() => setActiveStep(7)} label="Image Hub" icon={<Download className="w-4 h-4" />} />
+            <StepLink step={4} current={activeStep} onClick={() => setActiveStep(4)} label="Build Queue" icon={<ListOrdered className="w-4 h-4" />} />
+            <StepLink step={5} current={activeStep} onClick={() => setActiveStep(5)} label="Quick Flash" icon={<Zap className="w-4 h-4" />} />
+            <StepLink step={6} current={activeStep} onClick={() => setActiveStep(6)} label="Logs History" icon={<History className="w-4 h-4" />} />
+            <StepLink step={7} current={activeStep} onClick={() => setActiveStep(7)} label="Version Compare" icon={<GitCompare className="w-4 h-4" />} />
+            <StepLink step={8} current={activeStep} onClick={() => setActiveStep(8)} label="Image Hub" icon={<Download className="w-4 h-4" />} />
           </nav>
           <div className="p-4 border-t border-border text-[10px] text-zinc-500 uppercase tracking-widest">
             v2.4.0-stable
@@ -98,21 +99,26 @@ export default function App() {
             )}
             {activeStep === 4 && (
               <StepWrapper key="step4">
-                <QuickFlashStep />
+                <BuildQueueStep />
               </StepWrapper>
             )}
             {activeStep === 5 && (
               <StepWrapper key="step5">
-                <LogsHistoryStep />
+                <QuickFlashStep />
               </StepWrapper>
             )}
             {activeStep === 6 && (
               <StepWrapper key="step6">
-                <VersionComparatorStep />
+                <LogsHistoryStep />
               </StepWrapper>
             )}
             {activeStep === 7 && (
               <StepWrapper key="step7">
+                <VersionComparatorStep />
+              </StepWrapper>
+            )}
+            {activeStep === 8 && (
+              <StepWrapper key="step8">
                 <ImageHubStep config={config} />
               </StepWrapper>
             )}
@@ -151,9 +157,33 @@ function StepWrapper({ children }: { children: React.ReactNode, key?: React.Key 
 }
 
 function ConfigStep({ config, onChange, onNext }: { config: BuildPreset, onChange: (k: keyof BuildPreset, v: any) => void, onNext: () => void }) {
+  const [syncing, setSyncing] = useState(false);
+
+  const syncPresets = async () => {
+    setSyncing(true);
+    try {
+      const res = await fetch('/api/sync-presets', { method: 'POST' });
+      const data = await res.json();
+      alert(data.message);
+    } catch (e) {
+      console.error(e);
+    }
+    setSyncing(false);
+  };
+
   return (
     <div className="max-w-2xl">
-      <h2 className="text-xl font-semibold text-zinc-100 mb-6">Router Configuration</h2>
+      <div className="flex items-center justify-between mb-6 shrink-0">
+        <h2 className="text-xl font-semibold text-zinc-100">Router Configuration</h2>
+        <button 
+          onClick={syncPresets} 
+          disabled={syncing}
+          className="flex items-center gap-2 px-3 py-1.5 border border-border rounded-md hover:bg-white/5 disabled:opacity-50 text-xs text-zinc-300 font-medium transition-colors"
+        >
+          <RefreshCw className={`w-3 h-3 ${syncing ? 'animate-spin' : ''}`} />
+          {syncing ? 'Syncing...' : 'Sync Presets'}
+        </button>
+      </div>
       
       <div className="grid grid-cols-2 gap-6 mb-8">
         <div className="space-y-2">
@@ -164,9 +194,12 @@ function ConfigStep({ config, onChange, onNext }: { config: BuildPreset, onChang
             className="w-full bg-surface border border-border rounded-md px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:border-amber-500 transition-colors"
           >
             <option value="7590">FRITZ!Box 7590</option>
+            <option value="7560">FRITZ!Box 7560</option>
             <option value="7530">FRITZ!Box 7530</option>
+            <option value="7520">FRITZ!Box 7520</option>
             <option value="7490">FRITZ!Box 7490</option>
             <option value="6591">FRITZ!Box 6591 Cable</option>
+            <option value="3390">FRITZ!Box 3390</option>
           </select>
         </div>
         <div className="space-y-2">
@@ -535,11 +568,18 @@ function ExecutionStep({ config }: { config: BuildPreset }) {
           </div>
 
           {(isRunning || progress > 0) && (
-            <div className="absolute bottom-0 left-0 right-0 h-1 bg-surface">
-              <div 
-                className="h-full bg-amber-500 transition-all duration-300 ease-out" 
-                style={{ width: `${progress}%` }}
-              />
+            <div className="absolute bottom-0 left-0 right-0 bg-[#1c1c21] border-t border-border p-3 flex flex-col gap-2">
+              <div className="flex justify-between items-center text-[10px] uppercase tracking-widest font-bold text-zinc-400">
+                <span className={progress >= 20 ? 'text-amber-500' : ''}>Setup</span>
+                <span className={progress >= 50 ? 'text-amber-500' : ''}>Compile</span>
+                <span className={progress >= 100 ? 'text-amber-500' : ''}>Complete</span>
+              </div>
+              <div className="h-1.5 bg-background rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-amber-500 transition-all duration-300 ease-out" 
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
             </div>
           )}
         </div>
@@ -1105,6 +1145,107 @@ function ConfirmModal({ isOpen, onClose, onConfirm, title, message, confirmText 
           </button>
         </div>
       </motion.div>
+    </div>
+  );
+}
+
+function BuildQueueStep() {
+  const [queue, setQueue] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [batching, setBatching] = useState(false);
+
+  const fetchQueue = () => {
+    fetch('/api/build-queue')
+      .then(r => r.json())
+      .then(data => {
+        setQueue(data);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    fetchQueue();
+    const interval = setInterval(fetchQueue, 3000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const triggerBatch = async () => {
+    setBatching(true);
+    try {
+      await fetch('/api/batch-process', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          configs: [
+            { model: '7530', packages: ['OpenVPN'] },
+            { model: '7490', packages: ['WireGuard', 'nano'] }
+          ]
+        })
+      });
+      fetchQueue();
+    } catch (e) {
+      console.error(e);
+    }
+    setBatching(false);
+  };
+
+  return (
+    <div className="max-w-5xl h-full flex flex-col">
+      <div className="flex items-center justify-between mb-6 shrink-0">
+        <div>
+          <h2 className="text-xl font-semibold text-zinc-100">Build Queue & Batch</h2>
+          <p className="text-xs text-zinc-500 mt-1">Monitor active pipelines and initiate batch compilations.</p>
+        </div>
+        <button 
+          onClick={triggerBatch}
+          disabled={batching}
+          className="bg-amber-500 rounded-md hover:bg-amber-400 disabled:opacity-50 text-black px-6 py-2 text-xs uppercase font-bold tracking-wider transition-colors flex items-center gap-2"
+        >
+          {batching ? 'Dispatching...' : 'Batch Process Standards'}
+          <Layers className="w-4 h-4" />
+        </button>
+      </div>
+
+      <div className="flex-1 overflow-y-auto pr-4 space-y-4">
+        {loading && queue.length === 0 ? (
+          <div className="text-zinc-500 text-sm">Loading queue...</div>
+        ) : queue.length === 0 ? (
+          <div className="text-zinc-500 text-sm">Queue is currently empty.</div>
+        ) : (
+          queue.map(item => (
+            <div key={item.id} className="bg-surface border border-border p-5 rounded-xl flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${item.status === 'building' ? 'bg-amber-500/10 text-amber-500 animate-pulse' : 'bg-zinc-800 text-zinc-500'}`}>
+                  <Activity className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="font-bold text-zinc-200 text-sm">{item.id} <span className="text-zinc-500 font-mono font-normal ml-2">{item.model}</span></div>
+                  <div className="text-xs mt-1 capitalize flex items-center gap-2">
+                    <span className={item.status === 'building' ? 'text-amber-500 font-bold' : 'text-zinc-500'}>{item.status}</span>
+                    <span className="text-zinc-600">•</span>
+                    <span className="text-zinc-400">{item.packages} packages</span>
+                  </div>
+                </div>
+              </div>
+              
+              {item.status === 'building' ? (
+                <div className="w-64">
+                  <div className="flex justify-between text-[10px] text-zinc-400 mb-1.5 font-mono">
+                    <span>Compiling...</span>
+                    <span>{item.progress}%</span>
+                  </div>
+                  <div className="h-1.5 bg-background rounded-full overflow-hidden">
+                    <div className="h-full bg-amber-500 transition-all duration-500" style={{ width: `${item.progress}%` }}></div>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-xs text-zinc-500 font-mono">Waiting for runner...</div>
+              )}
+            </div>
+          ))
+        )}
+      </div>
     </div>
   );
 }

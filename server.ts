@@ -93,6 +93,32 @@ async function startServer() {
     ]);
   });
 
+  let buildQueue = [
+    { id: 'bq-2001', model: '7590', status: 'building', progress: 45, packages: 12 },
+    { id: 'bq-2002', model: '3390', status: 'queued', progress: 0, packages: 5 },
+    { id: 'bq-2003', model: '7520', status: 'queued', progress: 0, packages: 8 }
+  ];
+
+  app.get("/api/build-queue", (req, res) => {
+    res.json(buildQueue);
+  });
+
+  app.post("/api/batch-process", (req, res) => {
+    const { configs } = req.body;
+    const newItems = configs.map((c: any, i: number) => ({
+      id: `bq-300${i}`, model: c.model, status: 'queued', progress: 0, packages: c.packages?.length || 0
+    }));
+    buildQueue = [...buildQueue, ...newItems];
+    res.json({ success: true, queue: buildQueue });
+  });
+
+  app.post("/api/sync-presets", (req, res) => {
+    // Simulate cloud sync delay
+    setTimeout(() => {
+      res.json({ success: true, message: 'Presets successfully synchronized with cloud.' });
+    }, 1500);
+  });
+
   app.post("/api/generate-script", (req, res) => {
     const config = req.body;
     
