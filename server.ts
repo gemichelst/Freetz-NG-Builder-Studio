@@ -119,6 +119,20 @@ async function startServer() {
     }, 1500);
   });
 
+  app.get("/api/batch-history", (req, res) => {
+    res.json([
+      { batchId: 'B-8001', date: '2023-11-01 10:00', total: 4, successful: 4, failed: 0, models: ['7590', '7490'] },
+      { batchId: 'B-8002', date: '2023-11-02 14:20', total: 5, successful: 3, failed: 2, models: ['6591', '7530'] },
+      { batchId: 'B-8003', date: '2023-11-05 08:45', total: 2, successful: 2, failed: 0, models: ['3390', '7520'] }
+    ]);
+  });
+
+  app.post("/api/reorder-queue", (req, res) => {
+    const { queue } = req.body;
+    buildQueue = queue;
+    res.json({ success: true, queue: buildQueue });
+  });
+
   app.post("/api/generate-script", (req, res) => {
     const config = req.body;
     

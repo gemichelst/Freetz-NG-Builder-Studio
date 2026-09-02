@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Terminal, Save, Download, Cpu, HardDrive, Wifi, Shield, Play, Settings, AlertTriangle, CheckCircle2, Activity, Server, FileText, Calendar, GitCompare, ListChecks, Layers, Search, Zap, History, Bell, ListOrdered, RefreshCw } from 'lucide-react';
+import { Terminal, Save, Download, Cpu, HardDrive, Wifi, Shield, Play, Settings, AlertTriangle, CheckCircle2, Activity, Server, FileText, Calendar, GitCompare, ListChecks, Layers, Search, Zap, History, Bell, ListOrdered, RefreshCw, GripVertical, Archive } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
@@ -411,6 +411,10 @@ function ExecutionStep({ config }: { config: BuildPreset }) {
   };
 
   const startBuild = () => {
+    if ("Notification" in window && Notification.permission !== "granted" && Notification.permission !== "denied") {
+      Notification.requestPermission();
+    }
+
     setIsRunning(true);
     setLogs([]);
     setProgress(0);
@@ -422,6 +426,9 @@ function ExecutionStep({ config }: { config: BuildPreset }) {
         es.close();
         setIsRunning(false);
         setProgress(100);
+        if ("Notification" in window && Notification.permission === "granted") {
+          new Notification("Build Complete", { body: `Firmware for ${config.model} has been successfully compiled.` });
+        }
       } else {
         setLogs(prev => [...prev, data.log]);
         setProgress(data.progress);
@@ -1064,9 +1071,29 @@ function LogsHistoryStep() {
       .catch(() => setLoading(false));
   }, []);
 
+  const exportResults = () => {
+    if (history.length === 0) return;
+    const blob = new Blob([JSON.stringify(history, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `build-history-export-${new Date().toISOString().slice(0,10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="max-w-5xl h-full flex flex-col">
-      <h2 className="text-xl font-semibold text-zinc-100 mb-6 shrink-0">Build Logs History</h2>
+      <div className="flex items-center justify-between mb-6 shrink-0">
+        <h2 className="text-xl font-semibold text-zinc-100">Build Logs History</h2>
+        <button 
+          onClick={exportResults}
+          disabled={history.length === 0 || loading}
+          className="flex items-center gap-2 px-3 py-1.5 border border-border rounded-md hover:bg-white/5 disabled:opacity-50 text-xs text-zinc-300 font-medium transition-colors"
+        >
+          Export Results <Download className="w-3 h-3" />
+        </button>
+      </div>
       
       {selectedLogs ? (
         <div className="flex-1 flex flex-col min-h-0">
@@ -1153,8 +1180,15 @@ function BuildQueueStep() {
   const [queue, setQueue] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [batching, setBatching] = useState(false);
+  
+  const [dragItem, setDragItem] = useState<number | null>(null);
+  const [dragOverItem, setDragOverItem] = useState<number | null>(null);
+  
+  const [viewHistory, setViewHistory] = useState(false);
+  const [batchHistory, setBatchHistory] = useState<any[]>([]);
 
   const fetchQueue = () => {
+    if (viewHistory) return;
     fetch('/api/build-queue')
       .then(r => r.json())
       .then(data => {
@@ -1168,7 +1202,16 @@ function BuildQueueStep() {
     fetchQueue();
     const interval = setInterval(fetchQueue, 3000);
     return () => clearInterval(interval);
-  }, []);
+  }, [viewHistory]);
+
+  useEffect(() => {
+    if (viewHistory && batchHistory.length === 0) {
+      fetch('/api/batch-history')
+        .then(r => r.json())
+        .then(setBatchHistory)
+        .catch(console.error);
+    }
+  }, [viewHistory]);
 
   const triggerBatch = async () => {
     setBatching(true);
@@ -1190,6 +1233,27 @@ function BuildQueueStep() {
     setBatching(false);
   };
 
+  const handleSort = async () => {
+    if (dragItem !== null && dragOverItem !== null && dragItem !== dragOverItem) {
+      const newQueue = [...queue];
+      const draggedItemContent = newQueue.splice(dragItem, 1)[0];
+      newQueue.splice(dragOverItem, 0, draggedItemContent);
+      setQueue(newQueue);
+      
+      try {
+        await fetch('/api/reorder-queue', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ queue: newQueue })
+        });
+      } catch(e) {
+        console.error(e);
+      }
+    }
+    setDragItem(null);
+    setDragOverItem(null);
+  };
+
   return (
     <div className="max-w-5xl h-full flex flex-col">
       <div className="flex items-center justify-between mb-6 shrink-0">
@@ -1197,53 +1261,102 @@ function BuildQueueStep() {
           <h2 className="text-xl font-semibold text-zinc-100">Build Queue & Batch</h2>
           <p className="text-xs text-zinc-500 mt-1">Monitor active pipelines and initiate batch compilations.</p>
         </div>
-        <button 
-          onClick={triggerBatch}
-          disabled={batching}
-          className="bg-amber-500 rounded-md hover:bg-amber-400 disabled:opacity-50 text-black px-6 py-2 text-xs uppercase font-bold tracking-wider transition-colors flex items-center gap-2"
-        >
-          {batching ? 'Dispatching...' : 'Batch Process Standards'}
-          <Layers className="w-4 h-4" />
-        </button>
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={() => setViewHistory(!viewHistory)}
+            className={`border border-border rounded-md px-4 py-2 text-xs uppercase font-bold tracking-wider transition-colors flex items-center gap-2 ${viewHistory ? 'bg-amber-500/10 text-amber-500 border-amber-500/30' : 'hover:bg-white/5 text-zinc-300'}`}
+          >
+            {viewHistory ? 'Back to Queue' : 'Batch History'}
+            <Archive className="w-4 h-4" />
+          </button>
+          {!viewHistory && (
+            <button 
+              onClick={triggerBatch}
+              disabled={batching}
+              className="bg-amber-500 rounded-md hover:bg-amber-400 disabled:opacity-50 text-black px-6 py-2 text-xs uppercase font-bold tracking-wider transition-colors flex items-center gap-2"
+            >
+              {batching ? 'Dispatching...' : 'Batch Process Standards'}
+              <Layers className="w-4 h-4" />
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto pr-4 space-y-4">
-        {loading && queue.length === 0 ? (
-          <div className="text-zinc-500 text-sm">Loading queue...</div>
-        ) : queue.length === 0 ? (
-          <div className="text-zinc-500 text-sm">Queue is currently empty.</div>
-        ) : (
-          queue.map(item => (
-            <div key={item.id} className="bg-surface border border-border p-5 rounded-xl flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${item.status === 'building' ? 'bg-amber-500/10 text-amber-500 animate-pulse' : 'bg-zinc-800 text-zinc-500'}`}>
-                  <Activity className="w-5 h-5" />
-                </div>
+        {viewHistory ? (
+          batchHistory.length === 0 ? (
+            <div className="text-zinc-500 text-sm">Loading history...</div>
+          ) : (
+            batchHistory.map(batch => (
+              <div key={batch.batchId} className="bg-surface border border-border p-5 rounded-xl flex items-center justify-between">
                 <div>
-                  <div className="font-bold text-zinc-200 text-sm">{item.id} <span className="text-zinc-500 font-mono font-normal ml-2">{item.model}</span></div>
-                  <div className="text-xs mt-1 capitalize flex items-center gap-2">
-                    <span className={item.status === 'building' ? 'text-amber-500 font-bold' : 'text-zinc-500'}>{item.status}</span>
-                    <span className="text-zinc-600">•</span>
-                    <span className="text-zinc-400">{item.packages} packages</span>
+                  <div className="font-bold text-zinc-200 text-sm">{batch.batchId}</div>
+                  <div className="text-xs text-zinc-400 mt-1">{batch.date} • {batch.models.join(', ')}</div>
+                </div>
+                <div className="flex items-center gap-6">
+                  <div className="text-center">
+                    <div className="text-xl font-bold text-zinc-200">{batch.total}</div>
+                    <div className="text-[10px] uppercase tracking-widest text-zinc-500">Total</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-xl font-bold text-green-500">{batch.successful}</div>
+                    <div className="text-[10px] uppercase tracking-widest text-green-500/70">Success</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-xl font-bold text-red-500">{batch.failed}</div>
+                    <div className="text-[10px] uppercase tracking-widest text-red-500/70">Failed</div>
                   </div>
                 </div>
               </div>
-              
-              {item.status === 'building' ? (
-                <div className="w-64">
-                  <div className="flex justify-between text-[10px] text-zinc-400 mb-1.5 font-mono">
-                    <span>Compiling...</span>
-                    <span>{item.progress}%</span>
+            ))
+          )
+        ) : (
+          loading && queue.length === 0 ? (
+            <div className="text-zinc-500 text-sm">Loading queue...</div>
+          ) : queue.length === 0 ? (
+            <div className="text-zinc-500 text-sm">Queue is currently empty.</div>
+          ) : (
+            queue.map((item, index) => (
+              <div 
+                key={item.id} 
+                draggable
+                onDragStart={() => setDragItem(index)}
+                onDragEnter={() => setDragOverItem(index)}
+                onDragEnd={handleSort}
+                onDragOver={(e) => e.preventDefault()}
+                className={`bg-surface border p-5 rounded-xl flex items-center justify-between transition-colors ${dragOverItem === index ? 'border-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.1)]' : 'border-border'}`}
+              >
+                <div className="flex items-center gap-4">
+                  <GripVertical className="w-5 h-5 text-zinc-700 cursor-move shrink-0 hover:text-zinc-500 transition-colors" />
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${item.status === 'building' ? 'bg-amber-500/10 text-amber-500 animate-pulse' : 'bg-zinc-800 text-zinc-500'}`}>
+                    <Activity className="w-5 h-5" />
                   </div>
-                  <div className="h-1.5 bg-background rounded-full overflow-hidden">
-                    <div className="h-full bg-amber-500 transition-all duration-500" style={{ width: `${item.progress}%` }}></div>
+                  <div>
+                    <div className="font-bold text-zinc-200 text-sm">{item.id} <span className="text-zinc-500 font-mono font-normal ml-2">{item.model}</span></div>
+                    <div className="text-xs mt-1 capitalize flex items-center gap-2">
+                      <span className={item.status === 'building' ? 'text-amber-500 font-bold' : 'text-zinc-500'}>{item.status}</span>
+                      <span className="text-zinc-600">•</span>
+                      <span className="text-zinc-400">{item.packages} packages</span>
+                    </div>
                   </div>
                 </div>
-              ) : (
-                <div className="text-xs text-zinc-500 font-mono">Waiting for runner...</div>
-              )}
-            </div>
-          ))
+                
+                {item.status === 'building' ? (
+                  <div className="w-64">
+                    <div className="flex justify-between text-[10px] text-zinc-400 mb-1.5 font-mono">
+                      <span>Compiling...</span>
+                      <span>{item.progress}%</span>
+                    </div>
+                    <div className="h-1.5 bg-background rounded-full overflow-hidden">
+                      <div className="h-full bg-amber-500 transition-all duration-500" style={{ width: `${item.progress}%` }}></div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-xs text-zinc-500 font-mono">Waiting for runner...</div>
+                )}
+              </div>
+            ))
+          )
         )}
       </div>
     </div>
