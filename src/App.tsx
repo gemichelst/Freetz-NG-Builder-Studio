@@ -312,9 +312,15 @@ const PACKAGES_DB = [
 
 function PackagesStep({ config, onChange, onNext }: { config: BuildPreset, onChange: (k: keyof BuildPreset, v: any) => void, onNext: () => void }) {
   const [alertMsg, setAlertMsg] = useState<{ type: 'error' | 'info', text: string } | null>(null);
+  const [search, setSearch] = useState('');
 
   const flatDb = PACKAGES_DB.flatMap(c => c.items);
   const allIds = flatDb.map(i => i.id);
+
+  const filteredDB = PACKAGES_DB.map(cat => ({
+    ...cat,
+    items: cat.items.filter(pkg => pkg.id.toLowerCase().includes(search.toLowerCase()))
+  })).filter(cat => cat.items.length > 0);
 
   const togglePackage = (pkgId: string) => {
     const isSelected = config.packages.includes(pkgId);
@@ -385,6 +391,16 @@ function PackagesStep({ config, onChange, onNext }: { config: BuildPreset, onCha
       <div className="flex items-center justify-between mb-4 shrink-0">
         <h2 className="text-xl font-semibold text-zinc-100">Package & Patch Selection</h2>
         <div className="flex gap-4 items-center">
+          <div className="relative">
+            <input 
+              type="text" 
+              placeholder="Search packages..." 
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="bg-background border border-border rounded-md pl-8 pr-3 py-1.5 text-xs text-zinc-200 focus:outline-none focus:border-amber-500 transition-colors w-48"
+            />
+            <Search className="w-3.5 h-3.5 text-zinc-500 absolute left-2.5 top-2 pointer-events-none" />
+          </div>
           <label className="flex items-center gap-2 cursor-pointer bg-surface border border-border px-3 py-1.5 rounded-md hover:border-amber-500/50 transition-colors">
             <div className={`w-4 h-4 border flex items-center justify-center shrink-0 transition-colors ${config.externalTarget ? 'bg-amber-500 border-amber-500' : 'border-zinc-600'}`}>
               {config.externalTarget && <CheckIcon />}
@@ -423,7 +439,7 @@ function PackagesStep({ config, onChange, onNext }: { config: BuildPreset, onCha
       </AnimatePresence>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 overflow-y-auto pr-2 pb-8 mt-2">
-        {PACKAGES_DB.map(cat => {
+        {filteredDB.map(cat => {
           const catSelectedCount = cat.items.filter(item => config.packages.includes(item.id)).length;
           const isAllSelected = catSelectedCount === cat.items.length;
           
@@ -466,8 +482,12 @@ function PackagesStep({ config, onChange, onNext }: { config: BuildPreset, onCha
 
       <div className="mt-auto flex justify-between shrink-0 pt-4 border-t border-border">
         <div className="flex flex-col">
-          <div className="text-[10px] uppercase font-bold tracking-widest text-zinc-500">
-            Selected: <span className="text-amber-500 text-sm">{config.packages.length}</span> items
+          <div className="text-[10px] uppercase font-bold tracking-widest text-zinc-500 flex items-center">
+            Selected: <span className="text-amber-500 text-sm ml-1 mr-3">{config.packages.length}</span> items
+            <span className="mx-2 text-border">|</span>
+            Est. Time: <span className="text-zinc-300 ml-1 mr-3">{5 + Math.ceil(config.packages.length * 0.8)} min</span>
+            <span className="mx-2 text-border">|</span>
+            Est. Size: <span className="text-zinc-300 ml-1">{24 + (config.packages.length * 1.2)} MB</span>
           </div>
           {config.externalTarget && (
             <div className="text-xs text-blue-400 mt-1 flex items-center gap-1 font-medium">
@@ -479,6 +499,46 @@ function PackagesStep({ config, onChange, onNext }: { config: BuildPreset, onCha
           Next: Execution
         </button>
       </div>
+    </div>
+  );
+}
+
+function LogLine({ text }: { text: string }) {
+  let color = 'text-zinc-300';
+  let isPrefix = false;
+
+  const tLow = text.toLowerCase();
+  if (tLow.includes('error:') || tLow.includes('failed')) {
+    color = 'text-red-400 font-bold';
+  } else if (tLow.includes('warning:')) {
+    color = 'text-amber-400 font-medium';
+  } else if (tLow.includes('success') || tLow.includes('done')) {
+    color = 'text-green-400 font-bold';
+  } else if (text.startsWith('>')) {
+    color = 'text-blue-400';
+    isPrefix = true;
+  } else if (text.includes('make[')) {
+    color = 'text-purple-400';
+  } else if (text.includes('/usr/') || text.includes('/opt/')) {
+    color = 'text-cyan-400';
+  }
+
+  const timestampMatch = text.match(/^(\[\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\])/);
+  if (timestampMatch) {
+    const ts = timestampMatch[1];
+    const rest = text.substring(ts.length);
+    return (
+      <div>
+        <span className="text-zinc-600 mr-2">{ts}</span>
+        <span className={color}>{rest}</span>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <span className="text-zinc-500 mr-2">{isPrefix ? '' : '$'}</span>
+      <span className={color}>{text}</span>
     </div>
   );
 }
@@ -678,10 +738,10 @@ function ExecutionStep({ config }: { config: BuildPreset }) {
             </div>
           </div>
           
-          <div className="p-6 overflow-y-auto flex-1 font-mono text-xs text-zinc-300 space-y-1.5">
+          <div className="p-6 overflow-y-auto flex-1 font-mono text-xs text-zinc-300 space-y-1.5 custom-scrollbar">
             {logs.length === 0 && !isRunning && <div className="text-zinc-500">Waiting for build to start...</div>}
             {logs.filter(log => log.toLowerCase().includes(searchTerm.toLowerCase())).map((log, i) => (
-              <div key={i}><span className="text-amber-500 mr-2">$</span>{log}</div>
+              <div key={i}><LogLine text={log} /></div>
             ))}
             {isRunning && <div className="animate-pulse text-amber-400">_</div>}
           </div>
@@ -712,6 +772,19 @@ function PresetManager({ currentConfig, onApply }: { currentConfig: BuildPreset,
   const [presets, setPresets] = useState<BuildPreset[]>([]);
   const [saving, setSaving] = useState(false);
   const [presetName, setPresetName] = useState('');
+
+  const PREDEFINED_PRESETS = [
+    { cat: 'Starter / Minimal', items: [
+      { id: 'pre-1', name: 'Stock + Patches', description: 'Base firmware with branding removal and Freetzmount.', model: '7590', osVersion: '07.29', ipAddress: '192.168.178.1', autoFlash: false, externalTarget: false, buildMethod: 'direct' as const, packages: ['Remove brandings', 'Freetzmount'] },
+    ]},
+    { cat: 'Network & Security', items: [
+      { id: 'pre-2', name: 'VPN Hub', description: 'Secure tunneling with OpenVPN and Dropbear.', model: '7530', osVersion: '07.29', ipAddress: '192.168.178.1', autoFlash: false, externalTarget: false, buildMethod: 'direct' as const, packages: ['Remove brandings', 'OpenVPN', 'Dropbear', 'libssl', 'liblzo2'] },
+      { id: 'pre-3', name: 'Ad-Blocker', description: 'DNS level blocking with Addhole and Dnsmasq.', model: '7490', osVersion: '07.29', ipAddress: '192.168.178.1', autoFlash: false, externalTarget: false, buildMethod: 'direct' as const, packages: ['Remove brandings', 'Dnsmasq', 'Addhole'] },
+    ]},
+    { cat: 'Advanced Sandbox', items: [
+      { id: 'pre-4', name: 'Maxdev Environment', description: 'Full compilation suite with kernel replace.', model: '6591', osVersion: '07.29', ipAddress: '192.168.178.1', autoFlash: false, externalTarget: true, buildMethod: 'docker' as const, packages: ['Maxdev', 'Replace kernel', 'Freetzmount', 'strace', 'tcpdump'] },
+    ]}
+  ];
 
   const fetchPresets = async () => {
     try {
@@ -747,12 +820,39 @@ function PresetManager({ currentConfig, onApply }: { currentConfig: BuildPreset,
   return (
     <div className="mt-8 border-t border-border pt-8">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-semibold uppercase tracking-wider text-zinc-300">Advanced Presets</h3>
+        <h3 className="text-sm font-semibold uppercase tracking-wider text-zinc-300">Preset Library</h3>
         <button onClick={fetchPresets} className="text-[10px] uppercase font-mono tracking-widest text-amber-500 hover:text-amber-400">
-          Refresh List
+          Refresh Custom List
         </button>
       </div>
+
+      <div className="space-y-6 mb-8">
+        {PREDEFINED_PRESETS.map(category => (
+          <div key={category.cat}>
+            <h4 className="text-[10px] uppercase tracking-widest text-zinc-500 font-bold mb-3">{category.cat}</h4>
+            <div className="grid grid-cols-2 gap-4">
+              {category.items.map(p => (
+                <div key={p.id} className="bg-surface border border-border p-4 rounded-xl flex justify-between items-center group hover:border-amber-500/30 transition-colors">
+                  <div>
+                    <div className="font-semibold text-sm text-zinc-200">{p.name}</div>
+                    <div className="text-[10px] font-mono tracking-widest text-zinc-500 uppercase mt-1">
+                      {p.model} | {p.packages.length} PKGS
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => onApply(p)}
+                    className="text-xs uppercase tracking-wider font-bold text-amber-500 opacity-0 group-hover:opacity-100 transition-opacity px-3 py-1 bg-amber-500/10 rounded"
+                  >
+                    Load
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
       
+      <h4 className="text-[10px] uppercase tracking-widest text-zinc-500 font-bold mb-3">Custom Presets</h4>
       <div className="flex gap-4 mb-6">
         <input 
           type="text" 
@@ -789,7 +889,7 @@ function PresetManager({ currentConfig, onApply }: { currentConfig: BuildPreset,
         ))}
         {presets.length === 0 && (
           <div className="col-span-2 text-center py-6 border border-dashed border-border text-zinc-500 text-sm">
-            No global presets saved yet.
+            No custom global presets saved yet.
           </div>
         )}
       </div>
@@ -1219,9 +1319,9 @@ function LogsHistoryStep() {
             <div className="bg-[#1c1c21] px-4 py-2 border-b border-border shrink-0">
               <span className="text-[10px] font-mono text-zinc-500 uppercase">terminal session: historical-log</span>
             </div>
-            <div className="p-6 overflow-y-auto flex-1 font-mono text-xs text-zinc-300 space-y-1.5">
+            <div className="p-6 overflow-y-auto flex-1 font-mono text-xs text-zinc-300 space-y-1.5 custom-scrollbar">
               {selectedLogs.map((log, i) => (
-                <div key={i}><span className="text-zinc-500 mr-2">$</span>{log}</div>
+                <div key={i}><LogLine text={log} /></div>
               ))}
             </div>
           </div>
