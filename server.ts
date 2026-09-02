@@ -86,6 +86,22 @@ async function startServer() {
     res.json({ success: true, message: `Flashing ${filename} to ${ip} initiated.` });
   });
 
+  app.post("/api/cleanup", (req, res) => {
+    setTimeout(() => {
+      res.json({ success: true, message: 'Cleaned up 1.2GB of temporary files and dangling Docker volumes.' });
+    }, 1000);
+  });
+
+  app.post("/api/wiki/update", (req, res) => {
+    setTimeout(() => {
+      res.json({ success: true, message: 'Wiki page updated successfully.' });
+    }, 500);
+  });
+
+  app.post("/api/rotate-logs", (req, res) => {
+    res.json({ success: true, message: 'System logs have been successfully rotated and old archives compressed.' });
+  });
+
   app.get("/api/system-alerts", (req, res) => {
     res.json([
       { id: 1, type: 'warning', message: 'CPU Usage exceeded 80% in the last hour.' },
@@ -137,6 +153,8 @@ async function startServer() {
     const config = req.body;
     
     let script = `#!/bin/bash\n\n`;
+    script += `export USE_CCACHE=1\n`;
+    script += `export MAKE_JOBS=$(nproc)\n\n`;
     script += `# Freetz-NG Builder Script\n`;
     script += `# Generated for ${config.model || 'Unknown Model'} (FritzOS ${config.osVersion || 'Unknown'})\n`;
     script += `# Build Method: ${config.buildMethod || 'direct'}\n\n`;
